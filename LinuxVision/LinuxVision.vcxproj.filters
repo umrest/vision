@@ -1,0 +1,39 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="src">
+      <UniqueIdentifier>{2c92362d-3be3-47ba-9916-733f6e74eec6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include">
+      <UniqueIdentifier>{d3511be3-aa2a-4aec-9180-ad3626095998}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\main.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\AprilTagDetector.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\CameraCalibration.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\PositionROSPublisher.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="include\AprilTagDetector.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="include\CameraCalibration.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="include\PositionROSPublisher.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="include\TagPosition.h">
+      <Filter>include</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>
