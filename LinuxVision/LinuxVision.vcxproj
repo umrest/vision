@@ -43,6 +43,7 @@
     <ApplicationTypeRevision>1.0</ApplicationTypeRevision>
     <TargetLinuxPlatform>Generic</TargetLinuxPlatform>
     <LinuxProjectType>{2238F9CD-F817-4ECC-BD14-2524D2669B35}</LinuxProjectType>
+    <ProjectName>vision</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'" Label="Configuration">
@@ -85,6 +86,9 @@
     <ClInclude Include="include\CameraCalibration.h" />
     <ClInclude Include="include\PositionROSPublisher.h" />
     <ClInclude Include="include\TagPosition.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="TagPosition.msg" />
   </ItemGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <Link>

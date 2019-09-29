@@ -7,6 +7,12 @@
     <Filter Include="include">
       <UniqueIdentifier>{d3511be3-aa2a-4aec-9180-ad3626095998}</UniqueIdentifier>
     </Filter>
+    <Filter Include="launch">
+      <UniqueIdentifier>{c3e38480-7271-4258-b377-2df374cd560f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="msg">
+      <UniqueIdentifier>{a64a5c23-01b8-42aa-9a30-aa4a7f227c29}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\main.cpp">
@@ -35,5 +41,10 @@
     <ClInclude Include="include\TagPosition.h">
       <Filter>include</Filter>
     </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="TagPosition.msg">
+      <Filter>msg</Filter>
+    </None>
   </ItemGroup>
 </Project>
