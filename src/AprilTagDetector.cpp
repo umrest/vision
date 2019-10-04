@@ -1,4 +1,4 @@
-#include "AprilTagDetector.h"\
+#include "AprilTagDetector.h"
 
 #include "math.h"
 
