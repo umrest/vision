@@ -9,6 +9,6 @@ file(GLOB vision_SRC
 
 find_package( OpenCV REQUIRED )
 
-add_executable( vision  "${vision_SRC}" )
+add_executable( vision ${vision_SRC} )
 
-target_link_libraries( vision "${OpenCV_LIBS}"  )
+target_link_libraries( vision ${OpenCV_LIBS}  )
