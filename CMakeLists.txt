@@ -3,8 +3,8 @@ cmake_minimum_required(VERSION 2.8)
 project( vision )
 
 file(GLOB vision_SRC
-    "*.h"
-    "*.cpp"
+    "include/*.h"
+    "src/*.cpp"
 )
 
 find_package( OpenCV REQUIRED )
