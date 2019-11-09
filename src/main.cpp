@@ -5,6 +5,8 @@
 #include "AprilTagDetector.h"
 #include "Socket.h"
 
+#include <iostream>
+
 //#include "PositionROSPublisher.h"
 
 using namespace std;
@@ -84,6 +86,8 @@ int main(int argc, char *argv[])
 
 			cv::imshow("Captured", img);
 			cv::waitKey(1);
+
+			std::cout << "Sending data to .." << std::endl;
 
 			s.send(reinterpret_cast<char *>(&det.position));
 		}
