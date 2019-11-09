@@ -89,7 +89,7 @@ int main(int argc, char *argv[])
 
 			std::cout << "Sending data to .." << std::endl;
 
-			s.send(reinterpret_cast<char *>(&det.position));
+			s.send_data(reinterpret_cast<char *>(&det.position));
 		}
 		else
 		{

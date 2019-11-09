@@ -38,8 +38,10 @@ public:
         close(sockfd);
     }
 
-    void send(char *data)
+    void send_data(char *data)
     {
+        send(sockfd, data, 128, 0);
+        s
     }
 
 private:
