@@ -35,7 +35,7 @@ public:
     }
     ~Socket()
     {
-        close(sockfb);
+        close(sockfd);
     }
 
     void send(char *data)
