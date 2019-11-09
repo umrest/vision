@@ -3,13 +3,15 @@
 
 #include "CameraCalibration.h"
 #include "AprilTagDetector.h"
+#include "Socket.h"
 
 //#include "PositionROSPublisher.h"
 
 using namespace std;
 using namespace cv;
 
-int main(int argc, char* argv[]) {
+int main(int argc, char *argv[])
+{
 
 	/*
 	// Calibration part
@@ -48,10 +50,9 @@ int main(int argc, char* argv[]) {
 	calib.RunCalibration(imgs);
 	
 	*/
-	
-	
+
 	// Detection part
-	
+
 	// Webcam
 	//AprilTagDetector det(614.659, 584.008, 323.213, 51.519);
 
@@ -60,7 +61,6 @@ int main(int argc, char* argv[]) {
 	//PositionROSPublisher pub(argc, argv);
 
 	AprilTagDetector det(302.211, 300.491, 330.439, 241.819);
-
 
 	cv::Mat img;
 	cv::Mat gray;
@@ -73,28 +73,24 @@ int main(int argc, char* argv[]) {
 
 	cap.open(0);
 
+	Socket s;
 
-	while (true) {
+	while (true)
+	{
 
-
-		if(cap.read(img)){
+		if (cap.read(img))
+		{
 			det.detect(img);
 
 			cv::imshow("Captured", img);
 			cv::waitKey(1);
 
-			//pub.publish(det.position);
+			s.send(reinterpret_cast<char *>(&det.position));
 		}
-		else {
+		else
+		{
 			cout << "Unable to capture from video device" << endl;
 			break;
 		}
-
-		
 	}
-
-	
-	
-
-
 }
