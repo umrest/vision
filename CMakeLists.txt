@@ -12,4 +12,4 @@ find_package( OpenCV REQUIRED )
 
 add_executable( vision  )
 
-target_link_libraries( DisplayImage ${OpenCV_LIBS} ${vision_SRC} )
+target_link_libraries( vision ${OpenCV_LIBS} ${vision_SRC} )
