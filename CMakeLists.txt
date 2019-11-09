@@ -7,6 +7,8 @@ file(GLOB vision_SRC
     "src/*.cpp"
 )
 
+include_directories( include )
+
 find_package( OpenCV REQUIRED )
 
 add_executable( vision ${vision_SRC} )
