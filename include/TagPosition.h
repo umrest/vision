@@ -1,7 +1,8 @@
 #pragma once
 
-
-struct TagPosition {
+struct TagPosition
+{
+	char type = 2;
 	double x;
 	double y;
 	double z;
