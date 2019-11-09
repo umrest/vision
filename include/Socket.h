@@ -24,7 +24,7 @@ public:
         servaddr.sin_port = htons(8091);
 
         // connect the client socket to server socket
-        if (connect(sockfd, (SA *)&servaddr, sizeof(servaddr)) != 0)
+        if (connect(sockfd, &servaddr, sizeof(servaddr)) != 0)
         {
             connected = false;
         }
