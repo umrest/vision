@@ -3,11 +3,11 @@
 struct TagPosition
 {
 	char type = 2;
-	double x;
-	double y;
-	double z;
+	short x;
+	short y;
+	short z;
 
-	double roll;
-	double pitch;
-	double yaw;
+	short roll;
+	short pitch;
+	short yaw;
 };
