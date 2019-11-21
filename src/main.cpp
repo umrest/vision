@@ -6,6 +6,11 @@
 #include "Socket.h"
 
 #include <iostream>
+#include <chrono>
+#include <thread>
+
+#include "VisionData.h"
+
 
 //#include "PositionROSPublisher.h"
 
@@ -77,6 +82,7 @@ int main(int argc, char *argv[])
 
 	Socket s;
 
+
 	while (true)
 	{
 
@@ -87,9 +93,13 @@ int main(int argc, char *argv[])
 			cv::imshow("Captured", img);
 			cv::waitKey(1);
 
-			std::cout << "Sending data to .." << std::endl;
-
-			s.send_data(reinterpret_cast<char *>(&det.position));
+			VisionData v(det.position);
+			char* data = v.Serialize();
+			s.send_data(data);
+			
+			if(!s.connected()){
+				std::this_thread::sleep_for(2s);
+			}
 		}
 		else
 		{

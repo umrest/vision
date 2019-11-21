@@ -76,9 +76,9 @@ void AprilTagDetector::detect(Mat &img) {
 		apriltag_pose_t pose;
 		double err = estimate_tag_pose(&info, &pose);
 
-		position.x = pose.t->data[0];
-		position.y = pose.t->data[1];
-		position.z = pose.t->data[2];
+		position.x = pose.t->data[0] * 25.4;
+		position.y = pose.t->data[1] * 25.4;
+		position.z = pose.t->data[2] * 25.4;
 
 		double r11 = pose.R->data[0];
 		double r12 = pose.R->data[1];
@@ -90,11 +90,11 @@ void AprilTagDetector::detect(Mat &img) {
 		double r32 = pose.R->data[7];
 		double r33 = pose.R->data[8];
 
-		position.yaw = atan(r21 / r11) / (2*3.14) * 360;
+		position.roll = atan(r21 / r11) / (2*3.14) * 360;
 
-		position.pitch = atan(-r31 / sqrt(r32 * r32 + r33 * r33)) / (2 * 3.14) * 360;
+		position.yaw = atan(-r31 / sqrt(r32 * r32 + r33 * r33)) / (2 * 3.14) * 360;
 
-		position.roll = atan(r32 / r33) / (2 * 3.14) * 360;
+		position.pitch = atan(r32 / r33) / (2 * 3.14) * 360;
 		
 	}
 

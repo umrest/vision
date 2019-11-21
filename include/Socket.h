@@ -9,15 +9,28 @@
 class Socket
 {
 public:
-    Socket() : connected(false)
+    Socket() : _connected(false)
     {
-        // socket create and varification
+        
+
+        reconnect();
+    }
+    ~Socket()
+    {
+        disconnect();
+    }
+
+    void disconnect(){
+        close(sockfd);
+    }
+
+    void reconnect(){
+       // socket create and varification
         sockfd = socket(AF_INET, SOCK_STREAM, 0);
         if (sockfd == -1)
         {
             std::cout << "Failed to create socket... " << std::endl;
         }
-
         // assign IP, PORT
         servaddr.sin_family = AF_INET;
         servaddr.sin_addr.s_addr = inet_addr("127.0.0.1");
@@ -26,26 +39,38 @@ public:
         // connect the client socket to server socket
         if (connect(sockfd, (const sockaddr *)&servaddr, sizeof(servaddr)) != 0)
         {
-            connected = false;
+            _connected = false;
         }
         else
         {
-            connected = true;
+            _connected = true;
+            std::cout << "Socket reconnected" << std::endl;
+
+            char identifier[128];
+            identifier[0] = 250;
+            identifier[1] = 2;
+            send_data(identifier);
+            std::cout << "Sent identifier" << std::endl;
         }
-    }
-    ~Socket()
-    {
-        close(sockfd);
     }
 
     void send_data(char *data)
     {
-        send(sockfd, data, 128, 0);
+        if(send(sockfd, data, 128, 0) < 0) {
+            std::cout << "Socket send failed..." << std::endl;
+            _connected = false;
+            disconnect();
+            reconnect();
+        }
+    }
+
+    bool connected(){
+        return _connected;
     }
 
 private:
     int sockfd, connfd;
     struct sockaddr_in servaddr, cli;
 
-    bool connected;
+    bool _connected;
 };
