@@ -96,7 +96,10 @@ int main(int argc, char *argv[])
 			VisionData v(det.position);
 			char* data = v.Serialize();
 			s.send_data(data);
+
+			//std::this_thread::sleep_for(100ms);
 			
+			// Wait 2 seconds before trying to reconnect
 			if(!s.connected()){
 				std::this_thread::sleep_for(2s);
 			}
