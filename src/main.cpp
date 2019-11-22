@@ -11,7 +11,6 @@
 
 #include "VisionData.h"
 
-
 //#include "PositionROSPublisher.h"
 
 using namespace std;
@@ -20,21 +19,20 @@ using namespace cv;
 int main(int argc, char *argv[])
 {
 
-	/*
-	// Calibration part
-	
+	/*	// Calibration part
+
 	cv::VideoCapture cap;
 	cv::Mat img;
 	std::vector<cv::Mat> imgs;
 
 	cap.open(0);
 	cap.read(img);
-	cap.release();
 
 	cv::imshow("Image", img);
 	cv::waitKey();
 
-	for (int i = 0; i < 25; i++) {
+	for (int i = 0; i < 25; i++)
+	{
 
 		cv::waitKey(1000);
 
@@ -50,19 +48,17 @@ int main(int argc, char *argv[])
 		ss << "calibration01/calib_" << i << ".jpg";
 
 		cv::imwrite(ss.str(), img);
-
 	}
 
 	CameraCalibration calib;
 	calib.RunCalibration(imgs);
-	
-	*/
 
+	/*
 	// Detection part
 
 	// Webcam
 	//AprilTagDetector det(614.659, 584.008, 323.213, 51.519);
-
+*/
 	// USB Camera
 
 	//PositionROSPublisher pub(argc, argv);
@@ -82,7 +78,6 @@ int main(int argc, char *argv[])
 
 	Socket s;
 
-
 	while (true)
 	{
 
@@ -94,14 +89,15 @@ int main(int argc, char *argv[])
 			cv::waitKey(1);
 
 			VisionData v(det.position);
-			char* data = v.Serialize();
+			char *data = v.Serialize();
 			s.send_data(data);
 
 			//std::this_thread::sleep_for(100ms);
-			
+
 			// Wait 2 seconds before trying to reconnect
-			if(!s.connected()){
-				std::this_thread::sleep_for(2s);
+			if (!s.connected())
+			{
+				std::this_thread::sleep_for(std::chrono::seconds(2));
 			}
 		}
 		else

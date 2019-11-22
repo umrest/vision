@@ -1,16 +1,13 @@
 #pragma once
 
-
 struct TagPosition
 {
-	
-	short x;
-	short y;
-	short z;
 
-	short roll;
-	short pitch;
-	short yaw;
+	float x;
+	float y;
+	float z;
 
-	
+	float roll;
+	float pitch;
+	float yaw;
 };
