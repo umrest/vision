@@ -17,7 +17,8 @@ public:
 
 	void detect(cv::Mat &img);
 
-	TagPosition position;
+	TagPosition t0;
+	TagPosition t1;
 
 private:
 

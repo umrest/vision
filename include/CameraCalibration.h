@@ -21,7 +21,7 @@ class CameraCalibration
 		cv::Size im_size;
 
 		int board_width = 7, board_height = 5;
-		float square_size = 30;
+		float square_size = 29;
 
 		// Helper Functions
 		void setup_calibration(std::vector<cv::Mat> &imgs);

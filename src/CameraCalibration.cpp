@@ -30,10 +30,11 @@ void CameraCalibration::RunCalibration(std::vector<cv::Mat> imgs) {
 
 	cout << "Calibration error: " << computeReprojectionErrors(rvecs, tvecs, K, D) << endl;
 
-	cout << "fx: " << K.at<double>(0, 0) << endl;
-	cout << "fy: " << K.at<double>(1, 1) << endl;
-	cout << "cx: " << K.at<double>(0, 2) << endl;
-	cout << "cy: " << K.at<double>(1, 2) << endl;
+	cout << K.at<double>(0,1) << endl;
+	cout << K.at<double>(0, 0) << ", ";
+	cout << K.at<double>(1, 1) << ", ";
+	cout << K.at<double>(0, 2) << ", ";
+	cout << K.at<double>(1, 2) << endl;
 
 	printf("Done Calibration\n");
 }

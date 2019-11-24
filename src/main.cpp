@@ -18,63 +18,87 @@ using namespace cv;
 
 int main(int argc, char *argv[])
 {
-
-	/*	// Calibration part
-
 	cv::VideoCapture cap;
-	cv::Mat img;
-	std::vector<cv::Mat> imgs;
-
 	cap.open(0);
-	cap.read(img);
 
-	cv::imshow("Image", img);
-	cv::waitKey();
+	cout << cap.set(CAP_PROP_FRAME_WIDTH, 480);
+	cout << cap.set(CAP_PROP_FRAME_HEIGHT,320);
+	
+	cout << cap.set(CAP_PROP_AUTO_EXPOSURE, .25);
+	cout << cap.set(CAP_PROP_EXPOSURE, .025);
+	cout << endl;
 
-	for (int i = 0; i < 25; i++)
-	{
 
-		cv::waitKey(1000);
+	if(argc > 1){
+		std::string arg = argv[1];
+		cout << arg << endl;
+		if(arg == "calibrate"){
+			cout << "Run Calibration " << endl;
+			vector<cv::Mat> imgs(50);
 
-		cap.open(0);
-		cap.read(img);
-		cap.release();
+			for (int i = 0; i < 50; i++)
+			{
+				std::ostringstream ss;
 
-		imgs.push_back(img);
-		cv::imshow("Image", img);
+				ss << "calibration01/calib_" << i << ".jpg";
 
-		std::ostringstream ss;
+				imgs[i] = cv::imread(ss.str());
+			}
 
-		ss << "calibration01/calib_" << i << ".jpg";
+			CameraCalibration calib;
+			calib.RunCalibration(imgs);
+		}
+		if(arg == "capture"){
+			cout << "Capture Calibration Images" << endl;
+			// Calibration part
 
-		cv::imwrite(ss.str(), img);
+			cout << cap.set(CAP_PROP_AUTO_EXPOSURE, .75);
+
+			cv::Mat img;
+		
+
+			cap.read(img);
+			cv::imshow("Image", img);
+
+			cv::waitKey();
+
+			for (int i = 0; i < 50; i++)
+			{
+				cout << i << endl;
+				while(cv::waitKey(100) == 255){
+					cap.read(img);
+					cv::imshow("Image", img);
+				}
+
+				std::ostringstream ss;
+
+				ss << "calibration01/calib_" << i << ".jpg";
+
+				cv::imwrite(ss.str(), img);
+			}
+
+			cap.release();
+
+			
+		}
+		return 0;
 	}
 
-	CameraCalibration calib;
-	calib.RunCalibration(imgs);
-
-	/*
+	
 	// Detection part
 
 	// Webcam
 	//AprilTagDetector det(614.659, 584.008, 323.213, 51.519);
-*/
+
 	// USB Camera
 
 	//PositionROSPublisher pub(argc, argv);
-
-	AprilTagDetector det(302.211, 300.491, 330.439, 241.819);
+	AprilTagDetector det( 960.992, 960.992, 623.144, 370.718);
 
 	cv::Mat img;
 	cv::Mat gray;
 
-	cv::VideoCapture cap;
-
-	cap.set(CAP_PROP_FRAME_WIDTH, 1920);
-	cap.set(CAP_PROP_FRAME_HEIGHT, 1080);
-	//cap.set(CAP_PROP_EXPOSURE, 10000);
-
-	cap.open(0);
+	
 
 	Socket s;
 
@@ -85,10 +109,12 @@ int main(int argc, char *argv[])
 		{
 			det.detect(img);
 
-			cv::imshow("Captured", img);
-			cv::waitKey(1);
+			//cout << det.position << endl;
 
-			VisionData v(det.position);
+			//cv::imshow("Captured", img);
+			//cv::waitKey(1);
+
+			VisionData v(det.t0, det.t1);
 			char *data = v.Serialize();
 			s.send_data(data);
 

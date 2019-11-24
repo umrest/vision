@@ -42,8 +42,6 @@ void AprilTagDetector::detect(Mat &img) {
 		apriltag_detection_t* det;
 		zarray_get(detections, i, &det);
 
-		cout << det->id << endl;
-
 		// Do something with det here
 
 		// Display detection box
@@ -66,7 +64,7 @@ void AprilTagDetector::detect(Mat &img) {
 		// First create an apriltag_detection_info_t struct using your known parameters.
 		apriltag_detection_info_t info;
 		info.det = det;
-		info.tagsize = .12;
+		info.tagsize = .085;
 		info.fx = fx;
 		info.fy = fy;
 		info.cx = cx;
@@ -76,9 +74,11 @@ void AprilTagDetector::detect(Mat &img) {
 		apriltag_pose_t pose;
 		double err = estimate_tag_pose(&info, &pose);
 
-		position.x = pose.t->data[0] * 25.4;
-		position.y = pose.t->data[1] * 25.4;
-		position.z = pose.t->data[2] * 25.4;
+		TagPosition position;
+
+		position.x = pose.t->data[0] * 39.3701;
+		position.y = pose.t->data[1] * 39.3701;
+		position.z = pose.t->data[2] * 39.3701;
 
 		double r11 = pose.R->data[0];
 		double r12 = pose.R->data[1];
@@ -95,8 +95,22 @@ void AprilTagDetector::detect(Mat &img) {
 		position.yaw = atan(-r31 / sqrt(r32 * r32 + r33 * r33)) / (2 * 3.14) * 360;
 
 		position.pitch = atan(r32 / r33) / (2 * 3.14) * 360;
+
+		if(det->id == 0){
+			t0 = position;
+		}
+		if(det->id == 1){
+			t1 = position;
+		}
 		
 	}
 
 	apriltag_detections_destroy(detections);
+}
+
+std::ostream& operator<<(std::ostream& os, const TagPosition& t)
+{
+    os << t.x << " " << t.y << " " << t.z << "\n";
+	os << t.yaw << " " << t.pitch << " " << t.roll << "\n";
+    return os;
 }
