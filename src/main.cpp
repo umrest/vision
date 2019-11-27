@@ -19,13 +19,13 @@ using namespace cv;
 int main(int argc, char *argv[])
 {
 	cv::VideoCapture cap;
-	cap.open(0);
+	cap.open("/dev/v4l/by-id/usb-Sonix_Technology_Co.__Ltd._USB_2.0_Camera_SN5100-video-index0");
 
 	cout << cap.set(CAP_PROP_FRAME_WIDTH, 480);
 	cout << cap.set(CAP_PROP_FRAME_HEIGHT,320);
 	
 	cout << cap.set(CAP_PROP_AUTO_EXPOSURE, .25);
-	cout << cap.set(CAP_PROP_EXPOSURE, .025);
+	cout << cap.set(CAP_PROP_EXPOSURE, .125);
 	cout << endl;
 
 
@@ -93,7 +93,7 @@ int main(int argc, char *argv[])
 	// USB Camera
 
 	//PositionROSPublisher pub(argc, argv);
-	AprilTagDetector det( 960.992, 960.992, 623.144, 370.718);
+	AprilTagDetector det( 302.211, 300.491, 330.439, 241.819);
 
 	cv::Mat img;
 	cv::Mat gray;
@@ -117,7 +117,7 @@ int main(int argc, char *argv[])
 			VisionData v(det.t0, det.t1);
 			char *data = v.Serialize();
 			s.send_data(data);
-
+			
 			//std::this_thread::sleep_for(100ms);
 
 			// Wait 2 seconds before trying to reconnect

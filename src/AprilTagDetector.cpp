@@ -25,6 +25,11 @@ AprilTagDetector::~AprilTagDetector() {
 
 
 void AprilTagDetector::detect(Mat &img) {
+
+	//t0.reset();
+	//t1.reset();
+
+
 	Mat gray;
 
 	cvtColor(img, gray, cv::COLOR_BGR2GRAY);
