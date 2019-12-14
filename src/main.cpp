@@ -24,8 +24,8 @@ int main(int argc, char *argv[])
 	cout << cap.set(CAP_PROP_FRAME_WIDTH, 480);
 	cout << cap.set(CAP_PROP_FRAME_HEIGHT,320);
 	
-	cout << cap.set(CAP_PROP_AUTO_EXPOSURE, .25);
-	cout << cap.set(CAP_PROP_EXPOSURE, .125);
+	cout << cap.set(CAP_PROP_AUTO_EXPOSURE, .75);
+//	cout << cap.set(CAP_PROP_EXPOSURE, .025);
 	cout << endl;
 
 
@@ -34,9 +34,9 @@ int main(int argc, char *argv[])
 		cout << arg << endl;
 		if(arg == "calibrate"){
 			cout << "Run Calibration " << endl;
-			vector<cv::Mat> imgs(50);
+			vector<cv::Mat> imgs(15);
 
-			for (int i = 0; i < 50; i++)
+			for (int i = 0; i < 15; i++)
 			{
 				std::ostringstream ss;
 
@@ -62,7 +62,7 @@ int main(int argc, char *argv[])
 
 			cv::waitKey();
 
-			for (int i = 0; i < 50; i++)
+			for (int i = 0; i < 15; i++)
 			{
 				cout << i << endl;
 				while(cv::waitKey(100) == 255){
@@ -93,7 +93,7 @@ int main(int argc, char *argv[])
 	// USB Camera
 
 	//PositionROSPublisher pub(argc, argv);
-	AprilTagDetector det( 302.211, 300.491, 330.439, 241.819);
+	AprilTagDetector det( 159.911 ,  159.911 , 364.816, 231.372);
 
 	cv::Mat img;
 	cv::Mat gray;
@@ -109,10 +109,10 @@ int main(int argc, char *argv[])
 		{
 			det.detect(img);
 
-			//cout << det.position << endl;
+			cout << det.t0 << endl;
 
-			//cv::imshow("Captured", img);
-			//cv::waitKey(1);
+//			cv::imshow("Captured", img);/
+//			cv::waitKey(1);
 
 			VisionData v(det.t0, det.t1);
 			char *data = v.Serialize();
@@ -123,6 +123,7 @@ int main(int argc, char *argv[])
 			// Wait 2 seconds before trying to reconnect
 			if (!s.connected())
 			{
+				cout << "Not connected" << endl;
 				std::this_thread::sleep_for(std::chrono::seconds(2));
 			}
 		}

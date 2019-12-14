@@ -1,7 +1,7 @@
 #pragma once
 
 #include <apriltag/apriltag.h>
-#include <apriltag/tagStandard41h12.h>
+#include <apriltag/tag16h5.h>
 #include <apriltag/apriltag_pose.h>
 
 #include <opencv2/opencv.hpp>
