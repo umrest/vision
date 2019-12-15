@@ -54,14 +54,24 @@ public:
         }
     }
 
-    void send_data(char *data)
+    void send_data(char *data, int size = 128)
     {
-        if(send(sockfd, data, 128, 0) < 0) {
+        if(send(sockfd, data, size, 0) < 0) {
             std::cout << "Socket send failed..." << std::endl;
             _connected = false;
             disconnect();
             reconnect();
         }
+    }
+
+    bool recieve_data(char* data)
+    {
+        int res = recv(sockfd, data, 128, MSG_DONTWAIT);
+
+        if(res < 0){
+            return false;
+        }
+        return true;
     }
 
     bool connected(){

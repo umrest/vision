@@ -108,15 +108,37 @@ int main(int argc, char *argv[])
 	cv::Mat img;
 	cv::Mat gray;
 
-	
+	std::vector<uchar> buffer(4095);
 
 	Socket s;
 
+	double quality = 10;
+
 	while (true)
 	{
+		
 
 		if (cap.read(img))
 		{
+			
+
+			char recv[128];
+			if(s.recieve_data(recv)){
+				cout << "Sending image" << endl;
+				
+				// send image to dashboard
+				std::vector<int> param(2);
+				param[0] = cv::IMWRITE_JPEG_QUALITY;
+				param[1] = 60;
+
+				cv::imencode(".jpeg", img, buffer, param);
+				
+				char buf[65536];
+				buf[0] = 13;
+				std::copy(buffer.begin(), buffer.begin() + 65536-1, buf+1);
+				s.send_data(buf, 65536);
+			}
+
 			det.detect(img);
 
 			//cout << det.t1 << endl;

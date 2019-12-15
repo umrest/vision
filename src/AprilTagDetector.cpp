@@ -50,7 +50,7 @@ void AprilTagDetector::detect(Mat &img) {
 		// Do something with det here
 
 		// Display detection box
-
+/*
 		line(img, Point(det->p[0][0], det->p[0][1]),
 			Point(det->p[1][0], det->p[1][1]),
 			Scalar(0, 0xff, 0), 2);
@@ -63,7 +63,7 @@ void AprilTagDetector::detect(Mat &img) {
 		line(img, Point(det->p[2][0], det->p[2][1]),
 			Point(det->p[3][0], det->p[3][1]),
 			Scalar(0xff, 0, 0), 2);
-
+*/
 		
 
 		// POS ESTIMATION
