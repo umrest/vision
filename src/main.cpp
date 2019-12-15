@@ -119,7 +119,7 @@ int main(int argc, char *argv[])
 		{
 			det.detect(img);
 
-			cout << det.t0 << endl;
+			//cout << det.t1 << endl;
 
 			//cv::imshow("Captured", img);
 			//cv::waitKey(1);

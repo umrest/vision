@@ -64,12 +64,21 @@ void AprilTagDetector::detect(Mat &img) {
 			Point(det->p[3][0], det->p[3][1]),
 			Scalar(0xff, 0, 0), 2);
 
+		
+
 		// POS ESTIMATION
 
 		// First create an apriltag_detection_info_t struct using your known parameters.
 		apriltag_detection_info_t info;
 		info.det = det;
-		info.tagsize = .213;
+		info.tagsize = .5;
+		if(det->id == 0){
+			info.tagsize = .213;
+		}
+		if(det->id == 1){
+			info.tagsize = .0845;
+		}
+
 		info.fx = fx;
 		info.fy = fy;
 		info.cx = cx;
