@@ -21,8 +21,16 @@ int main(int argc, char *argv[])
 	cv::VideoCapture cap;
 	cap.open("/dev/v4l/by-id/usb-Sonix_Technology_Co.__Ltd._USB_2.0_Camera_SN5100-video-index0");
 
-	cout << cap.set(CAP_PROP_FRAME_WIDTH, 480);
-	cout << cap.set(CAP_PROP_FRAME_HEIGHT,320);
+	int resolution_x = 640;
+	int resolution_y = 480;
+
+	double fx = (resolution_x / 640) * 354.961;
+	double fy = (resolution_y / 480) * 354.961;
+	double cx = 320.961;
+	double cy = 249.12;
+
+	cout << cap.set(CAP_PROP_FRAME_WIDTH, resolution_x);
+	cout << cap.set(CAP_PROP_FRAME_HEIGHT,resolution_y);
 	
 	cout << cap.set(CAP_PROP_AUTO_EXPOSURE, .75);
 //	cout << cap.set(CAP_PROP_EXPOSURE, .025);
@@ -58,9 +66,11 @@ int main(int argc, char *argv[])
 		
 
 			cap.read(img);
-			cv::imshow("Image", img);
+			
+			
+			//cv::imshow("Image", img);
 
-			cv::waitKey();
+			//cv::waitKey();
 
 			for (int i = 0; i < 15; i++)
 			{
@@ -93,7 +103,7 @@ int main(int argc, char *argv[])
 	// USB Camera
 
 	//PositionROSPublisher pub(argc, argv);
-	AprilTagDetector det( 159.911 ,  159.911 , 364.816, 231.372);
+	AprilTagDetector det( fx ,  fy , cx, cy);
 
 	cv::Mat img;
 	cv::Mat gray;
@@ -111,8 +121,8 @@ int main(int argc, char *argv[])
 
 			cout << det.t0 << endl;
 
-//			cv::imshow("Captured", img);/
-//			cv::waitKey(1);
+			//cv::imshow("Captured", img);
+			//cv::waitKey(1);
 
 			VisionData v(det.t0, det.t1);
 			char *data = v.Serialize();
