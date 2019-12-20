@@ -19,7 +19,7 @@ using namespace cv;
 int main(int argc, char *argv[])
 {
 	cv::VideoCapture cap;
-	cap.open("/dev/v4l/by-id/usb-Sonix_Technology_Co.__Ltd._USB_2.0_Camera_SN5100-video-index0");
+	cap.open(0);//"/dev/v4l/by-id/usb-Sonix_Technology_Co.__Ltd._USB_2.0_Camera_SN5100-video-index0");
 
 	int resolution_x = 640;
 	int resolution_y = 480;
@@ -32,8 +32,8 @@ int main(int argc, char *argv[])
 	cout << cap.set(CAP_PROP_FRAME_WIDTH, resolution_x);
 	cout << cap.set(CAP_PROP_FRAME_HEIGHT,resolution_y);
 	
-	cout << cap.set(CAP_PROP_AUTO_EXPOSURE, .75);
-//	cout << cap.set(CAP_PROP_EXPOSURE, .025);
+	cout << cap.set(CAP_PROP_AUTO_EXPOSURE, .25);
+	cout << cap.set(CAP_PROP_EXPOSURE, .125);
 	cout << endl;
 
 
@@ -138,6 +138,7 @@ int main(int argc, char *argv[])
 				std::copy(buffer.begin(), buffer.begin() + 65536-1, buf+1);
 				s.send_data(buf, 65536);
 			}
+			
 
 			det.detect(img);
 
