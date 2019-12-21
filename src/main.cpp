@@ -16,9 +16,25 @@
 using namespace std;
 using namespace cv;
 
+
+cv::Mat img;
+cv::VideoCapture cap;
+
+void camera_worker(){
+	while (true)
+	{
+		if(!cap.read(img)){
+			break;
+		}
+	}
+
+	cout << "Unable to capture from video device" << endl;
+	cap.release();
+}
+
 int main(int argc, char *argv[])
 {
-	cv::VideoCapture cap;
+	
 	cap.open(0); //"/dev/v4l/by-id/usb-Sonix_Technology_Co.__Ltd._USB_2.0_Camera_SN5100-video-index0");
 
 	int resolution_x = 640;
@@ -34,7 +50,6 @@ int main(int argc, char *argv[])
 
 	cout << cap.set(CAP_PROP_AUTO_EXPOSURE, .25);
 	cout << cap.set(CAP_PROP_EXPOSURE, .025);
-	cout << cap.set(CV_CAP_PROP_BUFFERSIZE, 1);
 	cout << endl;
 
 	if (argc > 1)
@@ -104,7 +119,11 @@ int main(int argc, char *argv[])
 	//PositionROSPublisher pub(argc, argv);
 	AprilTagDetector det(fx, fy, cx, cy);
 
-	cv::Mat img;
+	std::thread camera_worker_thread (camera_worker);
+	while(img.empty()){
+		std::cout << "Camera not ready..." << std::endl;
+		std::this_thread::sleep_for(std::chrono::seconds(1));
+	}
 	cv::Mat gray;
 
 	std::vector<uchar> buffer(4095);
@@ -113,13 +132,11 @@ int main(int argc, char *argv[])
 
 	double quality = 10;
 
+	char recv[128];
+
 	while (true)
 	{
 
-		if (cap.read(img))
-		{
-
-			char recv[128];
 			if (s.recieve_data(recv))
 			{
 				cout << "Sending image" << endl;
@@ -136,7 +153,7 @@ int main(int argc, char *argv[])
 				std::copy(buffer.begin(), buffer.begin() + 65536 - 1, buf + 1);
 				s.send_data(buf, 65536);
 			}
-
+		
 			det.detect(img);
 
 			cout << det.t1 << endl;
@@ -156,12 +173,6 @@ int main(int argc, char *argv[])
 				cout << "Not connected" << endl;
 				std::this_thread::sleep_for(std::chrono::seconds(2));
 			}
-		}
-		else
-		{
-			cout << "Unable to capture from video device" << endl;
-			cap.release();
-			break;
-		}
+		
 	}
 }
