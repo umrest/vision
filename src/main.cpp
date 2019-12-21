@@ -32,8 +32,8 @@ int main(int argc, char *argv[])
 	cout << cap.set(CAP_PROP_FRAME_WIDTH, resolution_x);
 	cout << cap.set(CAP_PROP_FRAME_HEIGHT,resolution_y);
 	
-	cout << cap.set(CAP_PROP_AUTO_EXPOSURE, .75);
-//	cout << cap.set(CAP_PROP_EXPOSURE, .025);
+	cout << cap.set(CAP_PROP_AUTO_EXPOSURE, .25);
+	cout << cap.set(CAP_PROP_EXPOSURE, .025);
 	cout << endl;
 
 
@@ -141,7 +141,7 @@ int main(int argc, char *argv[])
 
 			det.detect(img);
 
-			//cout << det.t1 << endl;
+			cout << det.t0 << endl;
 
 			//cv::imshow("Captured", img);
 			//cv::waitKey(1);

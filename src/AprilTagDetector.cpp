@@ -11,7 +11,7 @@ AprilTagDetector::AprilTagDetector(double fx_in, double fy_in, double cx_in, dou
 
 	apriltag_detector_add_family(td, tf);
 
-	td->quad_decimate = 2;
+	td->quad_decimate = 4;
 	td->quad_sigma = 0.25;
 	td->refine_edges = 1;
 
@@ -91,6 +91,9 @@ void AprilTagDetector::detect(Mat &img) {
 		TagPosition position;
 
 		position.x = pose.t->data[0] * 39.3701;// * 86.6595 - .621;
+		// flip x
+		position.x = -position.x;
+		
 		position.y = pose.t->data[1] * 39.3701;// * 86.6595 - .621;
 		position.z = pose.t->data[2] * 39.3701;// * 86.6595 - .621;
 
@@ -108,6 +111,9 @@ void AprilTagDetector::detect(Mat &img) {
 		position.roll = atan2(r21, r11) / (2*3.14) * 360;
 
 		position.yaw = atan2(-r31, sqrt(r32 * r32 + r33 * r33)) / (2 * 3.14) * 360;
+
+		// flip y
+		position.yaw = -position.yaw;
 
 		position.pitch = atan2(r32, r33) / (2 * 3.14) * 360;
 

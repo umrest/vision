@@ -5,6 +5,7 @@
 #include <iostream>
 #include <sys/socket.h>
 #include <arpa/inet.h>
+#include <netinet/tcp.h>
 
 class Socket
 {
@@ -45,7 +46,9 @@ public:
         {
             _connected = true;
             std::cout << "Socket reconnected" << std::endl;
-
+            int yes = 1;
+            int res = setsockopt(sockfd, IPPROTO_TCP, TCP_NODELAY, (char*) &yes, sizeof(int));
+            std::cout << res << std::endl;
             char identifier[128];
             identifier[0] = 250;
             identifier[1] = 2;
