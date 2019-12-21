@@ -19,7 +19,7 @@ using namespace cv;
 int main(int argc, char *argv[])
 {
 	cv::VideoCapture cap;
-	cap.open("/dev/v4l/by-id/usb-Sonix_Technology_Co.__Ltd._USB_2.0_Camera_SN5100-video-index0");
+	cap.open(0); //"/dev/v4l/by-id/usb-Sonix_Technology_Co.__Ltd._USB_2.0_Camera_SN5100-video-index0");
 
 	int resolution_x = 640;
 	int resolution_y = 480;
@@ -31,16 +31,18 @@ int main(int argc, char *argv[])
 
 	cout << cap.set(CAP_PROP_FRAME_WIDTH, resolution_x);
 	cout << cap.set(CAP_PROP_FRAME_HEIGHT,resolution_y);
-	
+
 	cout << cap.set(CAP_PROP_AUTO_EXPOSURE, .25);
 	cout << cap.set(CAP_PROP_EXPOSURE, .025);
+	cout << cap.set(CV_CAP_PROP_BUFFERSIZE, 1);
 	cout << endl;
 
-
-	if(argc > 1){
+	if (argc > 1)
+	{
 		std::string arg = argv[1];
 		cout << arg << endl;
-		if(arg == "calibrate"){
+		if (arg == "calibrate")
+		{
 			cout << "Run Calibration " << endl;
 			vector<cv::Mat> imgs(15);
 
@@ -56,18 +58,17 @@ int main(int argc, char *argv[])
 			CameraCalibration calib;
 			calib.RunCalibration(imgs);
 		}
-		if(arg == "capture"){
+		if (arg == "capture")
+		{
 			cout << "Capture Calibration Images" << endl;
 			// Calibration part
 
 			cout << cap.set(CAP_PROP_AUTO_EXPOSURE, .75);
 
 			cv::Mat img;
-		
 
 			cap.read(img);
-			
-			
+
 			//cv::imshow("Image", img);
 
 			//cv::waitKey();
@@ -75,7 +76,8 @@ int main(int argc, char *argv[])
 			for (int i = 0; i < 15; i++)
 			{
 				cout << i << endl;
-				while(cv::waitKey(100) == 255){
+				while (cv::waitKey(100) == 255)
+				{
 					cap.read(img);
 					cv::imshow("Image", img);
 				}
@@ -88,13 +90,10 @@ int main(int argc, char *argv[])
 			}
 
 			cap.release();
-
-			
 		}
 		return 0;
 	}
 
-	
 	// Detection part
 
 	// Webcam
@@ -103,7 +102,7 @@ int main(int argc, char *argv[])
 	// USB Camera
 
 	//PositionROSPublisher pub(argc, argv);
-	AprilTagDetector det( fx ,  fy , cx, cy);
+	AprilTagDetector det(fx, fy, cx, cy);
 
 	cv::Mat img;
 	cv::Mat gray;
@@ -116,32 +115,31 @@ int main(int argc, char *argv[])
 
 	while (true)
 	{
-		
 
 		if (cap.read(img))
 		{
-			
 
 			char recv[128];
-			if(s.recieve_data(recv)){
+			if (s.recieve_data(recv))
+			{
 				cout << "Sending image" << endl;
-				
+
 				// send image to dashboard
 				std::vector<int> param(2);
 				param[0] = cv::IMWRITE_JPEG_QUALITY;
 				param[1] = 60;
 
 				cv::imencode(".jpeg", img, buffer, param);
-				
+
 				char buf[65536];
 				buf[0] = 13;
-				std::copy(buffer.begin(), buffer.begin() + 65536-1, buf+1);
+				std::copy(buffer.begin(), buffer.begin() + 65536 - 1, buf + 1);
 				s.send_data(buf, 65536);
 			}
 
 			det.detect(img);
 
-			cout << det.t0 << endl;
+			cout << det.t1 << endl;
 
 			//cv::imshow("Captured", img);
 			//cv::waitKey(1);
@@ -149,7 +147,7 @@ int main(int argc, char *argv[])
 			VisionData v(det.t0, det.t1);
 			char *data = v.Serialize();
 			s.send_data(data);
-			
+
 			//std::this_thread::sleep_for(100ms);
 
 			// Wait 2 seconds before trying to reconnect
@@ -162,6 +160,7 @@ int main(int argc, char *argv[])
 		else
 		{
 			cout << "Unable to capture from video device" << endl;
+			cap.release();
 			break;
 		}
 	}

@@ -10,6 +10,9 @@ file(GLOB vision_SRC
 include_directories( include )
 
 find_package( OpenCV REQUIRED )
+find_package( apriltag REQUIRED apriltag)
+find_package( Threads )
+
 
 add_executable( vision ${vision_SRC} )
 
