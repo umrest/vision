@@ -20,11 +20,15 @@ public:
 	TagPosition t0;
 	TagPosition t1;
 
+	
+
 private:
 
 	double fx, fy, cx, cy;
 
 	apriltag_detector_t* td;
 	apriltag_family_t* tf;
+
+		cv::Mat gray;
 };
 

@@ -11,10 +11,10 @@ AprilTagDetector::AprilTagDetector(double fx_in, double fy_in, double cx_in, dou
 
 	apriltag_detector_add_family(td, tf);
 
-	td->quad_decimate = 4;
-	td->quad_sigma = 0.25;
-	td->refine_edges = 1;
-
+	//td->quad_decimate = 2;
+	//td->quad_sigma = 0.8;
+	//td->refine_edges = 1;
+	td->nthreads = 4;
 
 }
 
@@ -24,15 +24,12 @@ AprilTagDetector::~AprilTagDetector() {
 }
 
 
-void AprilTagDetector::detect(Mat &img) {
+void AprilTagDetector::detect(Mat &gray) {
 
-	//t0.reset();
-	//t1.reset();
+	t0.reset();
+	t1.reset();
 
-
-	Mat gray;
-
-	cvtColor(img, gray, cv::COLOR_BGR2GRAY);
+	
 
 	image_u8_t im = { gray.cols, gray.rows, gray.cols, gray.data };
 
@@ -131,7 +128,7 @@ void AprilTagDetector::detect(Mat &img) {
 
 std::ostream& operator<<(std::ostream& os, const TagPosition& t)
 {
-    os << t.x << " " << t.y << " " << t.z << "\n";
-	os << t.yaw << " " << t.pitch << " " << t.roll << "\n";
+    os << t.x << " " << t.y << " " << t.z << " ";
+	os << t.yaw << " " << t.pitch << " " << t.roll << "\r\n" << std::flush;
     return os;
 }

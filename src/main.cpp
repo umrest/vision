@@ -1,15 +1,18 @@
 #include <opencv2/opencv.hpp>
 #include <opencv2/videoio.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
 
 #include "CameraCalibration.h"
 #include "AprilTagDetector.h"
-#include "Socket.h"
 
 #include <iostream>
 #include <chrono>
 #include <thread>
+#include <mutex>
 
 #include "VisionData.h"
+
+#include "TcpClient.h"
 
 //#include "PositionROSPublisher.h"
 
@@ -19,6 +22,8 @@ using namespace cv;
 
 cv::Mat img;
 cv::VideoCapture cap;
+
+std::mutex mtx;
 
 void camera_worker(){
 	while (true)
@@ -45,12 +50,10 @@ int main(int argc, char *argv[])
 	double cx = 320.961;
 	double cy = 249.12;
 
-	cout << cap.set(CAP_PROP_FRAME_WIDTH, resolution_x);
-	cout << cap.set(CAP_PROP_FRAME_HEIGHT,resolution_y);
+	cap.set(CAP_PROP_FRAME_WIDTH, resolution_x);
+	cap.set(CAP_PROP_FRAME_HEIGHT,resolution_y);
 
-	cout << cap.set(CAP_PROP_AUTO_EXPOSURE, .25);
-	cout << cap.set(CAP_PROP_EXPOSURE, .025);
-	cout << endl;
+	
 
 	if (argc > 1)
 	{
@@ -119,60 +122,96 @@ int main(int argc, char *argv[])
 	//PositionROSPublisher pub(argc, argv);
 	AprilTagDetector det(fx, fy, cx, cy);
 
-	std::thread camera_worker_thread (camera_worker);
+	cout << cap.set(CAP_PROP_AUTO_EXPOSURE, .75);
+	cout << cap.set(CAP_PROP_EXPOSURE, .025);
+
+	//cout << cap.set(CAP_PROP_CONVERT_RGB , false);
+	//cout << cap.set(CAP_PROP_FOURCC, CV_FOURCC('Y','U','Y','V') );
+
+std::thread camera_worker_thread (camera_worker);
 	while(img.empty()){
 		std::cout << "Camera not ready..." << std::endl;
 		std::this_thread::sleep_for(std::chrono::seconds(1));
 	}
-	cv::Mat gray;
+
+	
 
 	std::vector<uchar> buffer(4095);
 
-	Socket s;
+	boost::asio::io_service io_service;
+
+	TcpClient client;
+
+
+	
 
 	double quality = 10;
 
 	char recv[128];
 
+	auto t_start = std::chrono::high_resolution_clock::now();
+
 	while (true)
 	{
+		Mat gray;
 
-			if (s.recieve_data(recv))
-			{
-				cout << "Sending image" << endl;
-
-				// send image to dashboard
-				std::vector<int> param(2);
-				param[0] = cv::IMWRITE_JPEG_QUALITY;
-				param[1] = 60;
-
-				cv::imencode(".jpeg", img, buffer, param);
-
-				char buf[65536];
-				buf[0] = 13;
-				std::copy(buffer.begin(), buffer.begin() + 65536 - 1, buf + 1);
-				s.send_data(buf, 65536);
-			}
+			cvtColor(img, gray, cv::COLOR_RGB2GRAY);
 		
-			det.detect(img);
+			if (false)//client.read(recv))
+			{
+				if(recv[0] == 12){
+					cout << "Sending image:" ;
+					
 
-			cout << det.t1 << endl;
+					// send image to dashboard
+					std::vector<int> param(2);
+					param[0] = cv::IMWRITE_JPEG_QUALITY;
+					param[1] = 5;
+
+					cv::imencode(".jpeg", gray, buffer, param);
+					cout << buffer.size()<< endl;
+
+					char buf[65536];
+					buf[0] = 13;
+					std::copy(buffer.begin(), buffer.begin() + 65536 - 1, buf + 1);
+					//s.send_data(buf, 65536);
+				}
+
+				
+				if(recv[0] == 14){
+					cout << "Setting Vision Properties" << endl;
+					double exposure = *(short*)(recv + 1)/100.0;
+					int gain = (int)recv[5];
+					cout << exposure << " ";
+					cout << gain << " ";
+					cout << cap.set(CAP_PROP_AUTO_EXPOSURE, .75);
+					cout << cap.set(CAP_PROP_EXPOSURE, exposure);
+					cout << cap.set(CAP_PROP_GAIN, gain);
+					cout << endl;
+				}
+			}
+
+			
+
+			det.detect(gray);
+
+			//cout << det.t1 << endl;
 
 			//cv::imshow("Captured", img);
 			//cv::waitKey(1);
 
 			VisionData v(det.t0, det.t1);
 			char *data = v.Serialize();
-			s.send_data(data);
+			client.write(data, 128);
 
 			//std::this_thread::sleep_for(100ms);
 
-			// Wait 2 seconds before trying to reconnect
-			if (!s.connected())
-			{
-				cout << "Not connected" << endl;
-				std::this_thread::sleep_for(std::chrono::seconds(2));
-			}
+		auto t_end = std::chrono::high_resolution_clock::now();
+
+		double elapsed_time_ms = std::chrono::duration<double, std::milli>(t_end-t_start).count();
+
 		
+		cout << 1/(elapsed_time_ms/1000) << endl;
+		t_start = t_end;
 	}
 }
