@@ -14,7 +14,7 @@ AprilTagDetector::AprilTagDetector(double fx_in, double fy_in, double cx_in, dou
 	//td->quad_decimate = 2;
 	//td->quad_sigma = 0.8;
 	//td->refine_edges = 1;
-	td->nthreads = 4;
+	td->nthreads = 2;
 
 }
 

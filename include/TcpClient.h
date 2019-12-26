@@ -31,8 +31,16 @@ class TcpClient {
 
         socket.connect(endpoint, ec);
 
+        
+        
+
         if(!ec){
+           
+        
             std::cout << "Socket: Reconnect Succeeded" << std::endl;
+
+             boost::asio::socket_base::send_buffer_size option(128);
+        socket.set_option(option);
             char identifier[128];
             identifier[0] =  (char)CommunicationDefinitions::TYPE::IDENTIFIER;
             identifier[1] = (char)CommunicationDefinitions::IDENTIFIER::VISION;
@@ -57,6 +65,14 @@ class TcpClient {
         int bytesTransferred = socket.write_some(boost::asio::buffer(data, size), ec);
 
         handle_socket_write(ec, bytesTransferred);
+    }
+
+    bool read_nonblocking(char* data, int size){
+        if(socket.available() >= size){
+            socket.read_some(boost::asio::buffer(data, size));
+            return true;
+        }
+        return false;
     }
 
     void read(char* data, int size){

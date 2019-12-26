@@ -26,11 +26,14 @@ cv::VideoCapture cap;
 std::mutex mtx;
 
 void camera_worker(){
+	Mat tmp;
 	while (true)
 	{
-		if(!cap.read(img)){
+		if(!cap.read(tmp)){
 			break;
 		}
+		std::lock_guard<std::mutex> lock(mtx);
+		img = tmp;
 	}
 
 	cout << "Unable to capture from video device" << endl;
@@ -123,7 +126,7 @@ int main(int argc, char *argv[])
 	AprilTagDetector det(fx, fy, cx, cy);
 
 	cout << cap.set(CAP_PROP_AUTO_EXPOSURE, .75);
-	cout << cap.set(CAP_PROP_EXPOSURE, .025);
+	//cout << cap.set(CAP_PROP_EXPOSURE, .025);
 
 	//cout << cap.set(CAP_PROP_CONVERT_RGB , false);
 	//cout << cap.set(CAP_PROP_FOURCC, CV_FOURCC('Y','U','Y','V') );
@@ -149,45 +152,55 @@ std::thread camera_worker_thread (camera_worker);
 
 	char recv[128];
 
-	auto t_start = std::chrono::high_resolution_clock::now();
+
+	Mat gray;
 
 	while (true)
 	{
-		Mat gray;
-
-			cvtColor(img, gray, cv::COLOR_RGB2GRAY);
 		
-			if (false)//client.read(recv))
-			{
-				if(recv[0] == 12){
-					cout << "Sending image:" ;
-					
-
-					// send image to dashboard
-					std::vector<int> param(2);
-					param[0] = cv::IMWRITE_JPEG_QUALITY;
-					param[1] = 5;
-
-					cv::imencode(".jpeg", gray, buffer, param);
-					cout << buffer.size()<< endl;
-
-					char buf[65536];
-					buf[0] = 13;
-					std::copy(buffer.begin(), buffer.begin() + 65536 - 1, buf + 1);
-					//s.send_data(buf, 65536);
-				}
-
+		if(true){
+				std::lock_guard<std::mutex> lock(mtx);
 				
-				if(recv[0] == 14){
-					cout << "Setting Vision Properties" << endl;
-					double exposure = *(short*)(recv + 1)/100.0;
-					int gain = (int)recv[5];
-					cout << exposure << " ";
-					cout << gain << " ";
-					cout << cap.set(CAP_PROP_AUTO_EXPOSURE, .75);
-					cout << cap.set(CAP_PROP_EXPOSURE, exposure);
-					cout << cap.set(CAP_PROP_GAIN, gain);
-					cout << endl;
+
+				cvtColor(img, gray, cv::COLOR_RGB2GRAY);
+			}
+		
+			if (client.read_nonblocking(recv, 128))
+			{
+
+				cout << (int)recv[0] << endl;
+				if(recv[0] == (char)comm::CommunicationDefinitions::TYPE::VISION_COMMAND){
+					if(true){
+						cout << "Sending image:" ;
+						
+
+						// send image to dashboard
+						std::vector<int> param(2);
+						param[0] = cv::IMWRITE_JPEG_QUALITY;
+						param[1] = 5;
+
+						cv::imencode(".jpeg", gray, buffer, param);
+						cout << buffer.size()<< endl;
+
+						auto type = (comm::CommunicationDefinitions::TYPE)recv[0];
+						int sz = comm::CommunicationDefinitions::PACKET_SIZES.at(type) + 1;
+						char buf[sz];
+						buf[0] = (char)comm::CommunicationDefinitions::TYPE::VISION_IMAGE;
+						std::copy(buffer.begin(), buffer.begin() + sz - 1, buf + 1);
+						client.write(buf, sz);
+				
+					}
+					else if(true){
+						cout << "Setting Vision Properties" << endl;
+						double exposure = *(short*)(recv + 1)/100.0;
+						int gain = (int)recv[5];
+						cout << exposure << " ";
+						cout << gain << " ";
+						cout << cap.set(CAP_PROP_AUTO_EXPOSURE, .75);
+						cout << cap.set(CAP_PROP_EXPOSURE, exposure);
+						cout << cap.set(CAP_PROP_GAIN, gain);
+						cout << endl;
+					}
 				}
 			}
 
@@ -202,16 +215,8 @@ std::thread camera_worker_thread (camera_worker);
 
 			VisionData v(det.t0, det.t1);
 			char *data = v.Serialize();
-			client.write(data, 128);
+			//client.write(data, 128);
 
-			//std::this_thread::sleep_for(100ms);
-
-		auto t_end = std::chrono::high_resolution_clock::now();
-
-		double elapsed_time_ms = std::chrono::duration<double, std::milli>(t_end-t_start).count();
-
-		
-		cout << 1/(elapsed_time_ms/1000) << endl;
-		t_start = t_end;
+			std::this_thread::sleep_for(std::chrono::milliseconds(100));
 	}
 }
