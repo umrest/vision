@@ -41,11 +41,11 @@ class TcpClient {
 
              boost::asio::socket_base::send_buffer_size option(128);
         socket.set_option(option);
-            char identifier[128];
-            identifier[0] =  (char)CommunicationDefinitions::TYPE::IDENTIFIER;
-            identifier[1] = (char)CommunicationDefinitions::IDENTIFIER::VISION;
 
-            write(identifier, 128);
+            comm::Identifier identifier;
+            identifier.identifier = (uint8_t)CommunicationDefinitions::IDENTIFIER::VISION;
+
+            write(identifier.Serialize());
         }
         else{
             socket_connected = false;
@@ -59,10 +59,10 @@ class TcpClient {
 
 
 
-    void write(char* data, int size){
+    void write(std::vector<uint8_t> data){
         boost::system::error_code ec;
 
-        int bytesTransferred = socket.write_some(boost::asio::buffer(data, size), ec);
+        int bytesTransferred = socket.write_some(boost::asio::buffer(data), ec);
 
         handle_socket_write(ec, bytesTransferred);
     }

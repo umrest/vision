@@ -6,7 +6,7 @@
 
 #include <opencv2/opencv.hpp>
 
-#include "TagPosition.h"
+#include "comm/Vision.h"
 
 class AprilTagDetector
 {
@@ -17,18 +17,13 @@ public:
 
 	void detect(cv::Mat &img);
 
-	TagPosition t0;
-	TagPosition t1;
-
-	
+	comm::Vision vision;
 
 private:
-
 	double fx, fy, cx, cy;
 
-	apriltag_detector_t* td;
-	apriltag_family_t* tf;
+	apriltag_detector_t *td;
+	apriltag_family_t *tf;
 
-		cv::Mat gray;
+	cv::Mat gray;
 };
-

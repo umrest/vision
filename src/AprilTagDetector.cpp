@@ -5,9 +5,9 @@
 using namespace std;
 using namespace cv;
 
-AprilTagDetector::AprilTagDetector(double fx_in, double fy_in, double cx_in, double cy_in) :
-	fx(fx_in), fy(fy_in), cx(cx_in), cy(cy_in),
-	td(apriltag_detector_create()), tf(tagStandard41h12_create()) {
+AprilTagDetector::AprilTagDetector(double fx_in, double fy_in, double cx_in, double cy_in) : fx(fx_in), fy(fy_in), cx(cx_in), cy(cy_in),
+																							 td(apriltag_detector_create()), tf(tagStandard41h12_create())
+{
 
 	apriltag_detector_add_family(td, tf);
 
@@ -15,39 +15,47 @@ AprilTagDetector::AprilTagDetector(double fx_in, double fy_in, double cx_in, dou
 	//td->quad_sigma = 0.8;
 	//td->refine_edges = 1;
 	td->nthreads = 2;
-
 }
 
-AprilTagDetector::~AprilTagDetector() {
+AprilTagDetector::~AprilTagDetector()
+{
 	apriltag_detector_destroy(td);
 	tagStandard41h12_destroy(tf);
 }
 
+void AprilTagDetector::detect(Mat &gray)
+{
 
-void AprilTagDetector::detect(Mat &gray) {
+	vision.tag0.x = 0;
+	vision.tag0.y = 0;
+	vision.tag0.z = 0;
+	vision.tag0.yaw = 0;
+	vision.tag0.pitch = 0;
+	vision.tag0.roll = 0;
 
-	t0.reset();
-	t1.reset();
+	vision.tag1.x = 0;
+	vision.tag1.y = 0;
+	vision.tag1.z = 0;
+	vision.tag1.yaw = 0;
+	vision.tag1.pitch = 0;
+	vision.tag1.roll = 0;
 
-	
-
-	image_u8_t im = { gray.cols, gray.rows, gray.cols, gray.data };
-
+	image_u8_t im = {gray.cols, gray.rows, gray.cols, gray.data};
 
 	// DETECTION
 
-	zarray_t* detections = apriltag_detector_detect(td, &im);
+	zarray_t *detections = apriltag_detector_detect(td, &im);
 
+	for (int i = 0; i < zarray_size(detections); i++)
+	{
 
-	for (int i = 0; i < zarray_size(detections); i++) {
-
-		apriltag_detection_t* det;
+		apriltag_detection_t *det;
 		zarray_get(detections, i, &det);
 
 		// Do something with det here
 
 		// Display detection box
-/*
+		/*
 		line(img, Point(det->p[0][0], det->p[0][1]),
 			Point(det->p[1][0], det->p[1][1]),
 			Scalar(0, 0xff, 0), 2);
@@ -61,7 +69,6 @@ void AprilTagDetector::detect(Mat &gray) {
 			Point(det->p[3][0], det->p[3][1]),
 			Scalar(0xff, 0, 0), 2);
 */
-		
 
 		// POS ESTIMATION
 
@@ -69,10 +76,12 @@ void AprilTagDetector::detect(Mat &gray) {
 		apriltag_detection_info_t info;
 		info.det = det;
 		info.tagsize = .5;
-		if(det->id == 0){
+		if (det->id == 0)
+		{
 			info.tagsize = .213;
 		}
-		if(det->id == 1){
+		if (det->id == 1)
+		{
 			info.tagsize = .0845;
 		}
 
@@ -85,14 +94,22 @@ void AprilTagDetector::detect(Mat &gray) {
 		apriltag_pose_t pose;
 		double err = estimate_tag_pose(&info, &pose);
 
-		TagPosition position;
+		comm::TagPosition *position;
+		if (det->id == 0)
+		{
+			position = &vision.tag0;
+		}
+		if (det->id == 1)
+		{
+			position = &vision.tag1;
+		}
 
-		position.x = pose.t->data[0] * 39.3701;// * 86.6595 - .621;
+		position->x = pose.t->data[0] * 39.3701; // * 86.6595 - .621;
 		// flip x
-		position.x = -position.x;
-		
-		position.y = pose.t->data[1] * 39.3701;// * 86.6595 - .621;
-		position.z = pose.t->data[2] * 39.3701;// * 86.6595 - .621;
+		position->x = -position->x;
+
+		position->y = pose.t->data[1] * 39.3701; // * 86.6595 - .621;
+		position->z = pose.t->data[2] * 39.3701; // * 86.6595 - .621;
 
 		double r11 = pose.R->data[0];
 		double r12 = pose.R->data[1];
@@ -104,31 +121,23 @@ void AprilTagDetector::detect(Mat &gray) {
 		double r32 = pose.R->data[7];
 		double r33 = pose.R->data[8];
 
+		position->roll = atan2(r21, r11) / (2 * 3.14) * 360;
 
-		position.roll = atan2(r21, r11) / (2*3.14) * 360;
-
-		position.yaw = atan2(-r31, sqrt(r32 * r32 + r33 * r33)) / (2 * 3.14) * 360;
+		position->yaw = atan2(-r31, sqrt(r32 * r32 + r33 * r33)) / (2 * 3.14) * 360;
 
 		// flip y
-		position.yaw = -position.yaw;
+		position->yaw = -position->yaw;
 
-		position.pitch = atan2(r32, r33) / (2 * 3.14) * 360;
-
-		if(det->id == 0){
-			t0 = position;
-		}
-		if(det->id == 1){
-			t1 = position;
-		}
-		
+		position->pitch = atan2(r32, r33) / (2 * 3.14) * 360;
 	}
 
 	apriltag_detections_destroy(detections);
 }
 
-std::ostream& operator<<(std::ostream& os, const TagPosition& t)
+std::ostream &operator<<(std::ostream &os, const comm::TagPosition &t)
 {
-    os << t.x << " " << t.y << " " << t.z << " ";
-	os << t.yaw << " " << t.pitch << " " << t.roll << "\r\n" << std::flush;
-    return os;
+	os << t.x << " " << t.y << " " << t.z << " ";
+	os << t.yaw << " " << t.pitch << " " << t.roll << "\r\n"
+	   << std::flush;
+	return os;
 }
