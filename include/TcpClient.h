@@ -1,6 +1,8 @@
 #include <boost/asio.hpp>
 #include <boost/bind.hpp>
 
+#include <boost/array.hpp>
+
 #include <chrono>
 #include <thread>
 
@@ -62,7 +64,11 @@ class TcpClient {
     void write(char* data, int size){
         boost::system::error_code ec;
 
-        int bytesTransferred = socket.write_some(boost::asio::buffer(data, size), ec);
+        boost::array<boost::asio::const_buffer, 2> d = {
+            boost::asio::buffer(CommunicationDefinitions::key, 3),
+            boost::asio::buffer(data, size) };
+
+        int bytesTransferred = socket.write_some(d, ec);
 
         handle_socket_write(ec, bytesTransferred);
     }

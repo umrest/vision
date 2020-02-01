@@ -8,7 +8,7 @@
             "name": "(gdb) Launch",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/vision",
+            "program": "${workspaceFolder}/build/vision",
             "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
