@@ -10,7 +10,8 @@
 
 using namespace comm;
 
-class TcpClient {
+class TcpClient
+{
     boost::asio::io_service io_service;
     boost::asio::ip::tcp::socket socket;
 
@@ -21,82 +22,84 @@ class TcpClient {
 
     unsigned char socket_buffer[1024]; // buffer from serial
 
-    public:
-    TcpClient(): socket(io_service){
+public:
+    TcpClient() : socket(io_service)
+    {
         socket_reconnect();
     }
 
-    void socket_reconnect(){
+    void socket_reconnect()
+    {
         boost::asio::ip::tcp::endpoint endpoint(boost::asio::ip::address::from_string(host), port);
 
         boost::system::error_code ec;
 
         socket.connect(endpoint, ec);
 
-        
-        
+        if (!ec)
+        {
 
-        if(!ec){
-           
-        
             std::cout << "Socket: Reconnect Succeeded" << std::endl;
 
-             boost::asio::socket_base::send_buffer_size option(128);
-        socket.set_option(option);
+            boost::asio::socket_base::send_buffer_size option(128);
+            socket.set_option(option);
 
             comm::Identifier identifier;
             identifier.identifier = (uint8_t)CommunicationDefinitions::IDENTIFIER::VISION;
 
             write(identifier.Serialize());
         }
-        else{
+        else
+        {
             socket_connected = false;
             std::cout << "Socket: Reconnect Failed" << std::endl;
             std::this_thread::sleep_for(std::chrono::seconds(1));
         }
-
-        
-
     }
 
-
-
-    void write(std::vector<uint8_t> data){
+    void write(std::vector<uint8_t> data)
+    {
         boost::system::error_code ec;
 
         boost::array<boost::asio::const_buffer, 2> d = {
             boost::asio::buffer(CommunicationDefinitions::key, 3),
-            boost::asio::buffer(data, size) };
+            boost::asio::buffer(data, data.size())};
 
         int bytesTransferred = socket.write_some(d, ec);
 
         handle_socket_write(ec, bytesTransferred);
     }
 
-    bool read_nonblocking(char* data, int size){
-        if(socket.available() >= size){
+    bool read_nonblocking(char *data, int size)
+    {
+        if (socket.available() >= size)
+        {
             socket.read_some(boost::asio::buffer(data, size));
             return true;
         }
         return false;
     }
 
-    void read(char* data, int size){
+    void read(char *data, int size)
+    {
         socket.async_read_some(boost::asio::buffer(socket_buffer, 1),
-            boost::bind(&TcpClient::handle_socket_receive,
-                this, boost::asio::placeholders::error,
-                boost::asio::placeholders::bytes_transferred));
+                               boost::bind(&TcpClient::handle_socket_receive,
+                                           this, boost::asio::placeholders::error,
+                                           boost::asio::placeholders::bytes_transferred));
     }
 
-    void handle_socket_receive(const boost::system::error_code& ec, std::size_t bytes_transferred){
-        if(!ec){
+    void handle_socket_receive(const boost::system::error_code &ec, std::size_t bytes_transferred)
+    {
+        if (!ec)
+        {
             // Data
 
             //socket_read();
 
             std::cout << "Socket Recieve" << std::endl;
         }
-        else{
+        else
+        {
             std::cout << "Socket: Disconnected" << std::endl;
             socket.close();
             socket_reconnect();
@@ -104,16 +107,17 @@ class TcpClient {
         }
     }
 
-    void handle_socket_write(const boost::system::error_code& ec, std::size_t bytes_transferred){
-        if(!ec){
-            
+    void handle_socket_write(const boost::system::error_code &ec, std::size_t bytes_transferred)
+    {
+        if (!ec)
+        {
         }
-        else{
+        else
+        {
             std::cout << "Socket: Disconnected" << std::endl;
             socket.close();
             socket_reconnect();
             //socket_read();
         }
     }
-
 };

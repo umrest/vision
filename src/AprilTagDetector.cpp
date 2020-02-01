@@ -75,16 +75,7 @@ void AprilTagDetector::detect(Mat &gray)
 		// First create an apriltag_detection_info_t struct using your known parameters.
 		apriltag_detection_info_t info;
 		info.det = det;
-		info.tagsize = .5;
-		if (det->id == 0)
-		{
-			info.tagsize = .213;
-		}
-		if (det->id == 1)
-		{
-			info.tagsize = .0845;
-		}
-
+		info.tagsize = .1345;
 		info.fx = fx;
 		info.fy = fy;
 		info.cx = cx;
@@ -131,7 +122,55 @@ void AprilTagDetector::detect(Mat &gray)
 		position->pitch = atan2(r32, r33) / (2 * 3.14) * 360;
 	}
 
-	apriltag_detections_destroy(detections);
+	float tag_distance = 23.5; //inches
+	float tag0_theta = vision.tag0.yaw * (2 * 3.14) / 360.0;
+	float tag1_theta = vision.tag1.yaw * (2 * 3.14) / 360.0;
+
+	float tag0_x_1 = sin(tag0_theta) * vision.tag0.z;
+	float tag0_x_2 = sin(3.14 / 2.0 - tag0_theta) * vision.tag0.x;
+
+	float tag0_y_1 = cos(tag0_theta) * vision.tag0.z;
+	float tag0_y_2 = cos(3.14 / 2.0 - tag0_theta) * vision.tag0.x;
+
+	float tag0_x_estimate = tag0_x_1 + tag0_x_2 - tag_distance / 2.0;
+	float tag0_y_estimate = tag0_y_1 + tag0_y_2;
+	float tag0_yaw_estimate = -vision.tag0.yaw;
+
+	float tag1_x_1 = sin(tag1_theta) * vision.tag1.z;
+	float tag1_x_2 = sin(3.14 / 2.0 - tag1_theta) * vision.tag1.x;
+
+	float tag1_y_1 = cos(tag1_theta) * vision.tag1.z;
+	float tag1_y_2 = cos(3.14 / 2.0 - tag1_theta) * vision.tag1.x;
+
+	float tag1_x_estimate = tag1_x_1 + tag1_x_2 + tag_distance / 2.0;
+	float tag1_y_estimate = tag1_y_1 + tag1_y_2;
+	float tag1_yaw_estimate = -vision.tag1.yaw;
+
+	// average the two tags
+	if (vision.tag0.z != 0 && vision.tag1.z != 0)
+	{
+		vision.field_position.x = (tag0_x_estimate + tag1_x_estimate) / 2.0;
+		vision.field_position.y = (tag0_y_estimate + tag1_y_estimate) / 2.0;
+		vision.field_position.yaw = (tag0_yaw_estimate + tag1_yaw_estimate) / 2.0;
+	}
+	else if (vision.tag0.z != 0)
+	{
+		vision.field_position.x = tag0_x_estimate;
+		vision.field_position.y = tag0_y_estimate;
+		vision.field_position.yaw = tag0_yaw_estimate;
+	}
+	else if (vision.tag1.z != 0)
+	{
+		vision.field_position.x = tag1_x_estimate;
+		vision.field_position.y = tag1_y_estimate;
+		vision.field_position.yaw = tag1_yaw_estimate;
+	}
+	else
+	{
+		vision.field_position.x = 0;
+		vision.field_position.y = 0;
+		vision.field_position.yaw = 0;
+	}
 }
 
 std::ostream &operator<<(std::ostream &os, const comm::TagPosition &t)

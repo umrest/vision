@@ -27,3 +27,5 @@ private:
 
 	cv::Mat gray;
 };
+
+std::ostream &operator<<(std::ostream &os, const comm::TagPosition &t);
