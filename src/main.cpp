@@ -9,6 +9,7 @@
 #include <chrono>
 #include <thread>
 #include <mutex>
+#include <deque>
 
 #include "TcpClient.h"
 
@@ -40,10 +41,10 @@ class VisionMain
 		cv::imencode(".jpg", img, buffer, param);
 		cout << buffer.size() << endl;
 
-		Identifier identifier;
-		identifier.identifier = (uint8_t)comm::CommunicationDefinitions::IDENTIFIER::VISION;
-
-		client.write(identifier.Serialize());
+		vector<uint8_t> type(1);
+		type[0] = (uint8_t)comm::CommunicationDefinitions::TYPE::VISION_IMAGE;
+		client.write(type);
+		client.write_no_key(buffer);
 	}
 
 	void camera_worker()
@@ -64,6 +65,9 @@ class VisionMain
 	}
 
 public:
+	VisionMain()
+	{
+	}
 	void run()
 	{
 		cap.open("/dev/v4l/by-id/usb-Sonix_Technology_Co.__Ltd._USB_2.0_Camera_SN5100-video-index0");
@@ -95,18 +99,20 @@ public:
 		//cout << cap.set(CAP_PROP_CONVERT_RGB , false);
 		//cout << cap.set(CAP_PROP_FOURCC, CV_FOURCC('Y','U','Y','V') );
 
+		
 		std::thread camera_worker_thread(&VisionMain::camera_worker, this);
 		while (img.empty())
 		{
 			std::cout << "Camera not ready..." << std::endl;
 			std::this_thread::sleep_for(std::chrono::seconds(1));
 		}
+		
 
 		boost::asio::io_service io_service;
 
 		double quality = 10;
 
-		char recv[128];
+		uint8_t recv[128];
 
 		Mat gray;
 
@@ -125,7 +131,6 @@ public:
 			if (client.read_nonblocking(recv, 3))
 			{
 				bool valid_key = true;
-
 				for (int i = 0; i < 3; i++)
 				{
 					if (recv[i] != comm::CommunicationDefinitions::key[i])
@@ -136,7 +141,6 @@ public:
 
 				if (valid_key)
 				{
-					//cout << "Got valid key" << endl;
 					if (client.read_nonblocking(recv, 128))
 					{
 						cout << (int)recv[0] << endl;
@@ -144,8 +148,6 @@ public:
 						{
 							if (true)
 							{
-								cout << "Sending image:";
-
 								send_image(gray);
 							}
 							else if (true)

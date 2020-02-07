@@ -46,8 +46,8 @@ public:
 
             comm::Identifier identifier;
             identifier.identifier = (uint8_t)CommunicationDefinitions::IDENTIFIER::VISION;
-
-            write(identifier.Serialize());
+            std::vector<uint8_t> data = identifier.Serialize();
+            write(data);
         }
         else
         {
@@ -57,7 +57,14 @@ public:
         }
     }
 
-    void write(std::vector<uint8_t> data)
+    void write_no_key(std::vector<uint8_t> &data){
+        boost::system::error_code ec;
+        int bytesTransferred = socket.write_some(boost::asio::buffer(data, data.size()), ec);
+
+        handle_socket_write(ec, bytesTransferred);
+    }
+
+    void write(std::vector<uint8_t> &data)
     {
         boost::system::error_code ec;
 
@@ -70,7 +77,7 @@ public:
         handle_socket_write(ec, bytesTransferred);
     }
 
-    bool read_nonblocking(char *data, int size)
+    bool read_nonblocking(uint8_t *data, int size)
     {
         if (socket.available() >= size)
         {
