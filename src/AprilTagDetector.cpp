@@ -4,6 +4,7 @@
 
 using namespace std;
 using namespace cv;
+using namespace comm;
 
 AprilTagDetector::AprilTagDetector(double fx_in, double fy_in, double cx_in, double cy_in) : fx(fx_in), fy(fy_in), cx(cx_in), cy(cy_in),
 																							 td(apriltag_detector_create()), tf(tagStandard41h12_create())
@@ -21,6 +22,55 @@ AprilTagDetector::~AprilTagDetector()
 {
 	apriltag_detector_destroy(td);
 	tagStandard41h12_destroy(tf);
+}
+
+void get_position_from_pose(apriltag_pose_t pose, TagPosition *position)
+{
+	position->x = pose.t->data[0] * 39.3701; // * 86.6595 - .621;
+	// flip x
+	position->x = -position->x;
+
+	position->y = pose.t->data[1] * 39.3701; // * 86.6595 - .621;
+	position->z = pose.t->data[2] * 39.3701; // * 86.6595 - .621;
+
+	double r11 = pose.R->data[0];
+	double r12 = pose.R->data[1];
+	double r13 = pose.R->data[2];
+	double r21 = pose.R->data[3];
+	double r22 = pose.R->data[4];
+	double r23 = pose.R->data[5];
+	double r31 = pose.R->data[6];
+	double r32 = pose.R->data[7];
+	double r33 = pose.R->data[8];
+
+	position->roll = atan2(r21, r11) / (2 * 3.14) * 360;
+
+	position->yaw = atan2(-r31, sqrt(r32 * r32 + r33 * r33)) / (2 * 3.14) * 360;
+
+	// flip y
+	position->yaw = -position->yaw;
+
+	position->pitch = atan2(r32, r33) / (2 * 3.14) * 360;
+}
+
+void get_fieldposition_estimate(TagPosition tag, float tag_displacement, FieldPosition *fp)
+{
+	float tag_distance = 23.5; // displacement from center
+	float tag_theta = tag.yaw * (2 * 3.14) / 360.0;
+
+	float tag_x_1 = sin(tag_theta) * tag.z;
+	float tag_x_2 = sin(3.14 / 2.0 - tag_theta) * tag.x;
+
+	float tag_y_1 = cos(tag_theta) * tag.z;
+	float tag_y_2 = cos(3.14 / 2.0 - tag_theta) * tag.x;
+
+	float tag_x_estimate = tag_x_1 + tag_x_2 - tag_displacement;
+	float tag_y_estimate = tag_y_1 + tag_y_2;
+	float tag_yaw_estimate = -tag.yaw;
+
+	fp->x = tag_x_estimate;
+	fp->y = tag_y_estimate;
+	fp->yaw = tag_yaw_estimate;
 }
 
 void AprilTagDetector::detect(Mat &gray)
@@ -46,29 +96,16 @@ void AprilTagDetector::detect(Mat &gray)
 
 	zarray_t *detections = apriltag_detector_detect(td, &im);
 
+	comm::TagPosition tag0_pos1;
+	comm::TagPosition tag0_pos2;
+	comm::TagPosition tag1_pos1;
+	comm::TagPosition tag1_pos2;
+
 	for (int i = 0; i < zarray_size(detections); i++)
 	{
 
 		apriltag_detection_t *det;
 		zarray_get(detections, i, &det);
-
-		// Do something with det here
-
-		// Display detection box
-		/*
-		line(img, Point(det->p[0][0], det->p[0][1]),
-			Point(det->p[1][0], det->p[1][1]),
-			Scalar(0, 0xff, 0), 2);
-		line(img, Point(det->p[0][0], det->p[0][1]),
-			Point(det->p[3][0], det->p[3][1]),
-			Scalar(0, 0, 0xff), 2);
-		line(img, Point(det->p[1][0], det->p[1][1]),
-			Point(det->p[2][0], det->p[2][1]),
-			Scalar(0xff, 0, 0), 2);
-		line(img, Point(det->p[2][0], det->p[2][1]),
-			Point(det->p[3][0], det->p[3][1]),
-			Scalar(0xff, 0, 0), 2);
-*/
 
 		// POS ESTIMATION
 
@@ -82,72 +119,39 @@ void AprilTagDetector::detect(Mat &gray)
 		info.cy = cy;
 
 		// Then call estimate_tag_pose.
-		apriltag_pose_t pose;
-		double err = estimate_tag_pose(&info, &pose);
+		apriltag_pose_t pose1;
+		apriltag_pose_t pose2;
+		double err1;
+		double err2;
+		estimate_tag_pose_orthogonal_iteration(&info, &err1, &pose1, &err2, &pose2, 50);
 
-		comm::TagPosition *position;
 		if (det->id == 0)
 		{
-			position = &vision.tag0;
+			get_position_from_pose(pose1, &tag0_pos1);
+			get_position_from_pose(pose2, &tag0_pos2);
 		}
-		if (det->id == 1)
+		else if (det->id == 1)
 		{
-			position = &vision.tag1;
+			get_position_from_pose(pose1, &tag1_pos1);
+			get_position_from_pose(pose2, &tag1_pos2);
 		}
-
-		position->x = pose.t->data[0] * 39.3701; // * 86.6595 - .621;
-		// flip x
-		position->x = -position->x;
-
-		position->y = pose.t->data[1] * 39.3701; // * 86.6595 - .621;
-		position->z = pose.t->data[2] * 39.3701; // * 86.6595 - .621;
-
-		double r11 = pose.R->data[0];
-		double r12 = pose.R->data[1];
-		double r13 = pose.R->data[2];
-		double r21 = pose.R->data[3];
-		double r22 = pose.R->data[4];
-		double r23 = pose.R->data[5];
-		double r31 = pose.R->data[6];
-		double r32 = pose.R->data[7];
-		double r33 = pose.R->data[8];
-
-		position->roll = atan2(r21, r11) / (2 * 3.14) * 360;
-
-		position->yaw = atan2(-r31, sqrt(r32 * r32 + r33 * r33)) / (2 * 3.14) * 360;
-
-		// flip y
-		position->yaw = -position->yaw;
-
-		position->pitch = atan2(r32, r33) / (2 * 3.14) * 360;
 	}
 
-	float tag_distance = 23.5; //inches
-	float tag0_theta = vision.tag0.yaw * (2 * 3.14) / 360.0;
-	float tag1_theta = vision.tag1.yaw * (2 * 3.14) / 360.0;
+	apriltag_detections_destroy(detections);
 
-	float tag0_x_1 = sin(tag0_theta) * vision.tag0.z;
-	float tag0_x_2 = sin(3.14 / 2.0 - tag0_theta) * vision.tag0.x;
+	FieldPosition tag0_pos1_fp;
+	FieldPosition tag0_pos2_fp;
+	FieldPosition tag1_pos1_fp;
+	FieldPosition tag1_pos2_fp;
+	get_fieldposition_estimate(tag0_pos1, 23.5 / 2.0, &tag0_pos1_fp);
+	get_fieldposition_estimate(tag0_pos2, 23.5 / 2.0, &tag0_pos2_fp);
+	get_fieldposition_estimate(tag1_pos1, -23.5 / 2.0, &tag1_pos1_fp);
+	get_fieldposition_estimate(tag1_pos2, -23.5 / 2.0, &tag1_pos2_fp);
 
-	float tag0_y_1 = cos(tag0_theta) * vision.tag0.z;
-	float tag0_y_2 = cos(3.14 / 2.0 - tag0_theta) * vision.tag0.x;
-
-	float tag0_x_estimate = tag0_x_1 + tag0_x_2 - tag_distance / 2.0;
-	float tag0_y_estimate = tag0_y_1 + tag0_y_2;
-	float tag0_yaw_estimate = -vision.tag0.yaw;
-
-	float tag1_x_1 = sin(tag1_theta) * vision.tag1.z;
-	float tag1_x_2 = sin(3.14 / 2.0 - tag1_theta) * vision.tag1.x;
-
-	float tag1_y_1 = cos(tag1_theta) * vision.tag1.z;
-	float tag1_y_2 = cos(3.14 / 2.0 - tag1_theta) * vision.tag1.x;
-
-	float tag1_x_estimate = tag1_x_1 + tag1_x_2 + tag_distance / 2.0;
-	float tag1_y_estimate = tag1_y_1 + tag1_y_2;
-	float tag1_yaw_estimate = -vision.tag1.yaw;
-
-	// average the two tags
-	if (vision.tag0.z != 0 && vision.tag1.z != 0)
+	
+	/*
+	// both tags are visible
+	if (tag0_pos1.z != 0 && vision.tag1.z != 0)
 	{
 		vision.field_position.x = (tag0_x_estimate + tag1_x_estimate) / 2.0;
 		vision.field_position.y = (tag0_y_estimate + tag1_y_estimate) / 2.0;
@@ -171,6 +175,7 @@ void AprilTagDetector::detect(Mat &gray)
 		vision.field_position.y = 0;
 		vision.field_position.yaw = 0;
 	}
+	*/
 }
 
 std::ostream &operator<<(std::ostream &os, const comm::TagPosition &t)
