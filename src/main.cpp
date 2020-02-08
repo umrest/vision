@@ -99,14 +99,12 @@ public:
 		//cout << cap.set(CAP_PROP_CONVERT_RGB , false);
 		//cout << cap.set(CAP_PROP_FOURCC, CV_FOURCC('Y','U','Y','V') );
 
-		
 		std::thread camera_worker_thread(&VisionMain::camera_worker, this);
 		while (img.empty())
 		{
 			std::cout << "Camera not ready..." << std::endl;
 			std::this_thread::sleep_for(std::chrono::seconds(1));
 		}
-		
 
 		boost::asio::io_service io_service;
 
@@ -141,16 +139,19 @@ public:
 
 				if (valid_key)
 				{
+					cout << "valid Key" << endl;
+
 					if (client.read_nonblocking(recv, 128))
 					{
 						cout << (int)recv[0] << endl;
 						if (recv[0] == (char)comm::CommunicationDefinitions::TYPE::VISION_COMMAND)
 						{
-							if (true)
+							if (recv[1] == 0)
 							{
+								cout << "SEnding image" << endl;
 								send_image(gray);
 							}
-							else if (true)
+							else if (recv[1] == 1)
 							{
 								cout << "Setting Vision Properties" << endl;
 								double exposure = *(short *)(recv + 1) / 100.0;

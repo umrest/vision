@@ -57,7 +57,8 @@ public:
         }
     }
 
-    void write_no_key(std::vector<uint8_t> &data){
+    void write_no_key(std::vector<uint8_t> &data)
+    {
         boost::system::error_code ec;
         int bytesTransferred = socket.write_some(boost::asio::buffer(data, data.size()), ec);
 
