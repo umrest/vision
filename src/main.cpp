@@ -9,6 +9,7 @@
 #include <chrono>
 #include <thread>
 #include <mutex>
+#include <deque>
 
 #include "TcpClient.h"
 
@@ -40,10 +41,10 @@ class VisionMain
 		cv::imencode(".jpg", img, buffer, param);
 		cout << buffer.size() << endl;
 
-		Identifier identifier;
-		identifier.identifier = (uint8_t)comm::CommunicationDefinitions::IDENTIFIER::VISION;
-
-		client.write(identifier.Serialize());
+		vector<uint8_t> type(1);
+		type[0] = (uint8_t)comm::CommunicationDefinitions::TYPE::VISION_IMAGE;
+		client.write(type);
+		client.write_no_key(buffer);
 	}
 
 	void camera_worker()
@@ -64,6 +65,9 @@ class VisionMain
 	}
 
 public:
+	VisionMain()
+	{
+	}
 	void run()
 	{
 		cap.open("/dev/v4l/by-id/usb-Sonix_Technology_Co.__Ltd._USB_2.0_Camera_SN5100-video-index0");
@@ -106,7 +110,7 @@ public:
 
 		double quality = 10;
 
-		char recv[128];
+		uint8_t recv[128];
 
 		Mat gray;
 
@@ -125,7 +129,6 @@ public:
 			if (client.read_nonblocking(recv, 3))
 			{
 				bool valid_key = true;
-
 				for (int i = 0; i < 3; i++)
 				{
 					if (recv[i] != comm::CommunicationDefinitions::key[i])
@@ -136,19 +139,19 @@ public:
 
 				if (valid_key)
 				{
-					//cout << "Got valid key" << endl;
+					cout << "valid Key" << endl;
+
 					if (client.read_nonblocking(recv, 128))
 					{
 						cout << (int)recv[0] << endl;
 						if (recv[0] == (char)comm::CommunicationDefinitions::TYPE::VISION_COMMAND)
 						{
-							if (true)
+							if (recv[1] == 0)
 							{
-								cout << "Sending image:";
-
+								cout << "SEnding image" << endl;
 								send_image(gray);
 							}
-							else if (true)
+							else if (recv[1] == 1)
 							{
 								cout << "Setting Vision Properties" << endl;
 								double exposure = *(short *)(recv + 1) / 100.0;
