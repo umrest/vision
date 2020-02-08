@@ -43,6 +43,7 @@ public:
 
             boost::asio::socket_base::send_buffer_size option(128);
             socket.set_option(option);
+            //socket.set_option(boost::asio::ip::tcp::no_delay(true));
 
             comm::Identifier identifier;
             identifier.identifier = (uint8_t)CommunicationDefinitions::IDENTIFIER::VISION;
@@ -57,14 +58,7 @@ public:
         }
     }
 
-    void write_no_key(std::vector<uint8_t> &data)
-    {
-        boost::system::error_code ec;
-        int bytesTransferred = socket.write_some(boost::asio::buffer(data, data.size()), ec);
-
-        handle_socket_write(ec, bytesTransferred);
-    }
-
+   
     void write(std::vector<uint8_t> &data)
     {
         boost::system::error_code ec;
@@ -73,7 +67,7 @@ public:
             boost::asio::buffer(CommunicationDefinitions::key, 3),
             boost::asio::buffer(data, data.size())};
 
-        int bytesTransferred = socket.write_some(d, ec);
+        int bytesTransferred = boost::asio::write(socket, d, ec);
 
         handle_socket_write(ec, bytesTransferred);
     }

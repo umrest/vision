@@ -37,14 +37,19 @@ class VisionMain
 		std::vector<int> param(2);
 		param[0] = cv::IMWRITE_JPEG_QUALITY;
 		param[1] = 2;
-
 		cv::imencode(".jpg", img, buffer, param);
 		cout << buffer.size() << endl;
 
+
 		vector<uint8_t> type(1);
 		type[0] = (uint8_t)comm::CommunicationDefinitions::TYPE::VISION_IMAGE;
-		client.write(type);
-		client.write_no_key(buffer);
+
+		int sz = comm::CommunicationDefinitions::PACKET_SIZES.at(comm::CommunicationDefinitions::TYPE::VISION_IMAGE) + 1;
+		cout << sz << endl;
+		std::vector<uchar> buf(sz);
+		buf[0] = (char)comm::CommunicationDefinitions::TYPE::VISION_IMAGE;
+		std::copy(buffer.begin(), buffer.end(), buf.begin() + 1);
+		client.write(buf);
 	}
 
 	void camera_worker()
