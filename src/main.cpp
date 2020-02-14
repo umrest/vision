@@ -38,14 +38,14 @@ class VisionMain
 		param[0] = cv::IMWRITE_JPEG_QUALITY;
 		param[1] = 2;
 		cv::imencode(".jpg", img, buffer, param);
-		cout << buffer.size() << endl;
+		//cout << buffer.size() << endl;
 
 
 		vector<uint8_t> type(1);
 		type[0] = (uint8_t)comm::CommunicationDefinitions::TYPE::VISION_IMAGE;
 
 		int sz = comm::CommunicationDefinitions::PACKET_SIZES.at(comm::CommunicationDefinitions::TYPE::VISION_IMAGE) + 1;
-		cout << sz << endl;
+		//cout << sz << endl;
 		std::vector<uchar> buf(sz);
 		buf[0] = (char)comm::CommunicationDefinitions::TYPE::VISION_IMAGE;
 		std::copy(buffer.begin(), buffer.end(), buf.begin() + 1);
@@ -183,7 +183,7 @@ public:
 
 			client.write(data);
 
-			std::this_thread::sleep_for(std::chrono::milliseconds(100));
+			//std::this_thread::sleep_for(std::chrono::milliseconds(100));
 		}
 	}
 };
