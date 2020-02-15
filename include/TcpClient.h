@@ -7,6 +7,7 @@
 #include <thread>
 
 #include <comm/CommunicationDefinitions.h>
+#include <comm/Identifier.h>
 
 using namespace comm;
 
