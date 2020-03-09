@@ -31,25 +31,37 @@ class VisionMain
 
 	TcpClient client;
 
+	bool streaming_enabled = false;
+	bool detection_enabled = true;
+	float auto_quality = 10;
+
 	void send_image(Mat &img)
 	{
 		// send image to dashboard
 		std::vector<int> param(2);
 		param[0] = cv::IMWRITE_JPEG_QUALITY;
-		param[1] = 2;
+		param[1] = auto_quality;
 		cv::imencode(".jpg", img, buffer, param);
-		//cout << buffer.size() << endl;
-
+		cout << "Sending Image: " << buffer.size() << endl;
 
 		vector<uint8_t> type(1);
 		type[0] = (uint8_t)comm::CommunicationDefinitions::TYPE::VISION_IMAGE;
-
+		int target_sz = 8000;
 		int sz = comm::CommunicationDefinitions::PACKET_SIZES.at(comm::CommunicationDefinitions::TYPE::VISION_IMAGE) + 1;
-		//cout << sz << endl;
+		cout << sz << endl;
+		int diff = target_sz-buffer.size();
+                cout << diff << endl;
+		auto_quality+=diff/400.0;
+
+		if(auto_quality < 1){auto_quality =1;}
+		if(auto_quality > 100){auto_quality=100;}
+                cout << auto_quality << endl;
 		std::vector<uchar> buf(sz);
 		buf[0] = (char)comm::CommunicationDefinitions::TYPE::VISION_IMAGE;
-		std::copy(buffer.begin(), buffer.end(), buf.begin() + 1);
+		std::copy(buffer.begin(), buffer.begin() + sz, buf.begin() + 1);
 		client.write(buf);
+
+		
 	}
 
 	void camera_worker()
@@ -75,7 +87,7 @@ public:
 	}
 	void run()
 	{
-		cap.open("/dev/v4l/by-id/usb-Sonix_Technology_Co.__Ltd._USB_2.0_Camera_SN5100-video-index0");
+		cap.open("/dev/v4l/by-id/usb-Microsoft_Microsoft®_LifeCam_HD-3000-video-index0"); /*usb-Sonix_Technology_Co.__Ltd._USB_2.0_Camera_SN5100-video-index0*/
 
 		int resolution_x = 640;
 		int resolution_y = 480;
@@ -128,8 +140,10 @@ public:
 
 				cvtColor(img, gray, cv::COLOR_RGB2GRAY);
 			}
-
-			//send_image(gray);
+			if (streaming_enabled)
+			{
+				send_image(gray);
+			}
 
 			if (client.read_nonblocking(recv, 3))
 			{
@@ -156,22 +170,28 @@ public:
 								cout << "SEnding image" << endl;
 								send_image(gray);
 							}
-							else if (recv[1] == 1)
+						}
+						else if (recv[0] == (char)comm::CommunicationDefinitions::TYPE::VISION_PROPERTIES)
+						{
+							if (recv[1] == 1)
 							{
 								cout << "Setting Vision Properties" << endl;
-								double exposure = *(short *)(recv + 1) / 100.0;
-								int gain = (int)recv[5];
-								cout << exposure << " ";
-								cout << gain << " ";
-								cout << cap.set(CAP_PROP_AUTO_EXPOSURE, .75);
-								cout << cap.set(CAP_PROP_EXPOSURE, exposure);
-								cout << cap.set(CAP_PROP_GAIN, gain);
-								cout << endl;
+							}
+							else if (recv[1] == 2)
+							{
+
+								streaming_enabled = recv[2] == 1;
+								detection_enabled = recv[3] == 1;
+
+								cout << "Setting Vision State" << endl;
 							}
 						}
-					}
 				}
 			}
+		}
+		cout << detection_enabled << endl;
+		if (detection_enabled)
+		{
 
 			det.detect(gray);
 
@@ -186,7 +206,9 @@ public:
 			//std::this_thread::sleep_for(std::chrono::milliseconds(100));
 		}
 	}
-};
+}
+}
+;
 
 int main(int argc, char *argv[])
 {
