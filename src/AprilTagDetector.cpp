@@ -112,8 +112,11 @@ void AprilTagDetector::detect(Mat &gray)
 	tag1_pos2.z = 0;
 	tag1_pos2.yaw = 0;
 
+		bool pose_valid = false;
+
 	for (int i = 0; i < zarray_size(detections); i++)
 	{
+		pose_valid = true;
 
 		apriltag_detection_t *det;
 		zarray_get(detections, i, &det);
@@ -189,7 +192,7 @@ void AprilTagDetector::detect(Mat &gray)
 		vision.field_position.y =   0;
 		vision.field_position.yaw = 0;
 
-		bool pose_valid = true;
+	
 
 	
 
@@ -247,8 +250,6 @@ void AprilTagDetector::detect(Mat &gray)
 		vision.tag1.y = 0;
 		vision.tag1.z = 0;
 		vision.tag1.yaw = 0;
-
-		bool pose_valid = false;
 	}
 	
 	if(pose_valid){
@@ -275,6 +276,8 @@ void AprilTagDetector::detect(Mat &gray)
 		vision.field_position.y =   moving_average.y;
 		vision.field_position.yaw = moving_average.yaw;
 	}
+
+	vision.vision_good = pose_valid ? 1 : 0;
 }
 
 std::ostream &operator<<(std::ostream &os, const comm::TagPosition &t)

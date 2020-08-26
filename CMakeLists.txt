@@ -20,5 +20,5 @@ link_directories( /usr/local/lib/comm )
 
 add_executable( vision ${vision_SRC} )
 
-target_link_libraries( vision ${OpenCV_LIBS} apriltag  comm
+target_link_libraries( vision ${OpenCV_LIBS} apriltag  comm 
 ${Boost_FILESYSTEM_LIBRARY} ${Boost_SYSTEM_LIBRARY} ${CMAKE_THREAD_LIBS_INIT})

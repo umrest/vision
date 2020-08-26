@@ -15,7 +15,7 @@
 
 #include <comm/Vision.h>
 #include <comm/Identifier.h>
-
+//#include "Servo.h"
 //#include "PositionROSPublisher.h"
 
 using namespace std;
@@ -30,6 +30,8 @@ class VisionMain
 	std::vector<uchar> buffer;
 
 	TcpClient client;
+
+	//Servo servo;
 
 	void send_image(Mat &img)
 	{
@@ -119,9 +121,11 @@ public:
 
 		Mat gray;
 
+		double angle = 0;
+
 		while (true)
 		{
-
+			//servo.write(angle+=.25);
 			if (true)
 			{
 				std::lock_guard<std::mutex> lock(mtx);
@@ -129,7 +133,7 @@ public:
 				cvtColor(img, gray, cv::COLOR_RGB2GRAY);
 			}
 
-			//send_image(gray);
+			send_image(gray);
 
 			if (client.read_nonblocking(recv, 3))
 			{
