@@ -32,12 +32,8 @@ class VisionMain
 	comm::RESTClient client;
 
 	int auto_quality = 2;
-
-	//Servo servo;
-
 	bool streaming_enabled = false;
 	bool detection_enabled = true;
-	float auto_quality = 10;
 
 	void send_image(Mat &img)
 	{
@@ -182,9 +178,7 @@ public:
 
 		}
 	}
-}
-}
-;
+};
 
 int main(int argc, char *argv[])
 {
