@@ -11,12 +11,12 @@
 #include <mutex>
 #include <deque>
 
-#include "TcpClient.h"
+#include <comm/RESTClient.h>
 
 #include <comm/Vision.h>
+#include <comm/Vision_Image.h>
 #include <comm/Identifier.h>
-//#include "Servo.h"
-//#include "PositionROSPublisher.h"
+#include <comm/Vision_Command.h>
 
 using namespace std;
 using namespace cv;
@@ -29,7 +29,9 @@ class VisionMain
 	std::mutex mtx;
 	std::vector<uchar> buffer;
 
-	TcpClient client;
+	comm::RESTClient client;
+
+	int auto_quality = 2;
 
 	//Servo servo;
 
@@ -38,20 +40,23 @@ class VisionMain
 		// send image to dashboard
 		std::vector<int> param(2);
 		param[0] = cv::IMWRITE_JPEG_QUALITY;
-		param[1] = 2;
+		param[1] = auto_quality;
 		cv::imencode(".jpg", img, buffer, param);
-		//cout << buffer.size() << endl;
+
+		if(buffer.size() > 8191 * 0.8){
+			auto_quality -= 3;
+		}
+		else{
+			auto_quality += 1;
+		}
+		buffer.resize(8191);
 
 
-		vector<uint8_t> type(1);
-		type[0] = (uint8_t)comm::CommunicationDefinitions::TYPE::VISION_IMAGE;
+		std::unique_ptr<comm::RESTPacket> vision_image_packet(new comm::Vision_Image);
 
-		int sz = comm::CommunicationDefinitions::PACKET_SIZES.at(comm::CommunicationDefinitions::TYPE::VISION_IMAGE) + 1;
-		//cout << sz << endl;
-		std::vector<uchar> buf(sz);
-		buf[0] = (char)comm::CommunicationDefinitions::TYPE::VISION_IMAGE;
-		std::copy(buffer.begin(), buffer.end(), buf.begin() + 1);
-		client.write(buf);
+		((comm::Vision_Image*)vision_image_packet.get())->set_image((char*)&buffer[0]);
+		client.send_message(vision_image_packet.get());
+
 	}
 
 	void camera_worker()
@@ -72,7 +77,7 @@ class VisionMain
 	}
 
 public:
-	VisionMain()
+	VisionMain() : client(comm::CommunicationDefinitions::IDENTIFIER::VISION)
 	{
 	}
 	void run()
@@ -123,71 +128,54 @@ public:
 
 		double angle = 0;
 
+		bool enable_streaming = false;
+		bool enable_detection = true;
+
 		while (true)
 		{
-			//servo.write(angle+=.25);
-			if (true)
-			{
-				std::lock_guard<std::mutex> lock(mtx);
+		if(true){
+					std::lock_guard<std::mutex> lock(mtx);
 
-				cvtColor(img, gray, cv::COLOR_RGB2GRAY);
+					cvtColor(img, gray, cv::COLOR_RGB2GRAY);
+		}
+
+			if(enable_detection){
+				det.detect(gray);
+				client.send_message(&det.vision);
+			}
+			
+			if (enable_streaming)
+			{
+				send_image(gray);
 			}
 
-			send_image(gray);
-
-			if (client.read_nonblocking(recv, 3))
-			{
-				bool valid_key = true;
-				for (int i = 0; i < 3; i++)
-				{
-					if (recv[i] != comm::CommunicationDefinitions::key[i])
-					{
-						valid_key = false;
+		
+			auto messages = client.get_messages();
+			for(auto &m : messages){
+				if(m->type() == comm::CommunicationDefinitions::TYPE::VISION_COMMAND){
+					comm::Vision_Command* command = (comm::Vision_Command*)m.get();
+					if(command->get_command() == 5){
+						send_image(gray);
+						enable_streaming = false;
 					}
-				}
+					if(command->get_command() == 6){
+						enable_streaming = true;
+					}
+					if(command->get_command() == 7){
+						enable_streaming = false;
+					}
 
-				if (valid_key)
-				{
-					cout << "valid Key" << endl;
-
-					if (client.read_nonblocking(recv, 128))
-					{
-						cout << (int)recv[0] << endl;
-						if (recv[0] == (char)comm::CommunicationDefinitions::TYPE::VISION_COMMAND)
-						{
-							if (recv[1] == 0)
-							{
-								cout << "SEnding image" << endl;
-								send_image(gray);
-							}
-							else if (recv[1] == 1)
-							{
-								cout << "Setting Vision Properties" << endl;
-								double exposure = *(short *)(recv + 1) / 100.0;
-								int gain = (int)recv[5];
-								cout << exposure << " ";
-								cout << gain << " ";
-								cout << cap.set(CAP_PROP_AUTO_EXPOSURE, .75);
-								cout << cap.set(CAP_PROP_EXPOSURE, exposure);
-								cout << cap.set(CAP_PROP_GAIN, gain);
-								cout << endl;
-							}
-						}
+					if(command->get_command() == 8){
+						enable_detection = true;
+					}
+					if(command->get_command() == 9){
+						enable_detection = false;
 					}
 				}
 			}
+			
 
-			det.detect(gray);
 
-			//std::cout << det.vision.tag0 << std::endl;
-
-			//cv::imshow("Captured", img);
-			//cv::waitKey(1);
-			auto data = det.vision.Serialize();
-
-			client.write(data);
-
-			//std::this_thread::sleep_for(std::chrono::milliseconds(100));
 		}
 	}
 };
