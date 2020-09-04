@@ -35,6 +35,10 @@ class VisionMain
 
 	//Servo servo;
 
+	bool streaming_enabled = false;
+	bool detection_enabled = true;
+	float auto_quality = 10;
+
 	void send_image(Mat &img)
 	{
 		// send image to dashboard
@@ -82,7 +86,7 @@ public:
 	}
 	void run()
 	{
-		cap.open("/dev/v4l/by-id/usb-Sonix_Technology_Co.__Ltd._USB_2.0_Camera_SN5100-video-index0");
+		cap.open("/dev/v4l/by-id/usb-Microsoft_Microsoft®_LifeCam_HD-3000-video-index0"); /*usb-Sonix_Technology_Co.__Ltd._USB_2.0_Camera_SN5100-video-index0*/
 
 		int resolution_x = 640;
 		int resolution_y = 480;
@@ -178,7 +182,9 @@ public:
 
 		}
 	}
-};
+}
+}
+;
 
 int main(int argc, char *argv[])
 {
