@@ -62,18 +62,22 @@ class VisionMain
 	void camera_worker()
 	{
 		Mat tmp;
-		while (true)
-		{
-			if (!cap.read(tmp))
-			{
-				break;
+		while(true){	
+			if(cap.open("/dev/v4l/by-id/usb-Sonix_Technology_Co.__Ltd._USB_2.0_Camera_SN5100-video-index0")){
+				while (true)
+				{
+					if (!cap.read(tmp))
+					{
+						break;
+					}
+					std::lock_guard<std::mutex> lock(mtx);
+					img = tmp;
+				}
 			}
-			std::lock_guard<std::mutex> lock(mtx);
-			img = tmp;
-		}
 
-		cout << "Unable to capture from video device" << endl;
-		cap.release();
+			cout << "Unable to capture from video device" << endl;
+			cap.release();
+		}
 	}
 
 public:
@@ -82,7 +86,7 @@ public:
 	}
 	void run()
 	{
-		cap.open("/dev/v4l/by-id/usb-Microsoft_Microsoft®_LifeCam_HD-3000-video-index0"); /*usb-Sonix_Technology_Co.__Ltd._USB_2.0_Camera_SN5100-video-index0*/
+		
 
 		int resolution_x = 640;
 		int resolution_y = 480;

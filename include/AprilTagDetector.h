@@ -27,12 +27,12 @@ private:
 
 	cv::Mat gray;
 
-	comm::FieldPosition cur_fp;
-	comm::FieldPosition last_fp;
-	comm::FieldPosition moving_average;
+	comm::Field_Position cur_fp;
+	comm::Field_Position last_fp;
+	comm::Field_Position moving_average;
 	// closer to 0 -> more averaging
 	double alpha = 0.3;
 	int reset_times = 0;
 };
 
-std::ostream &operator<<(std::ostream &os, const comm::TagPosition &t);
+std::ostream &operator<<(std::ostream &os, const comm::Tag_Position &t);

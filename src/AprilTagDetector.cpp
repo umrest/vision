@@ -32,7 +32,7 @@ AprilTagDetector::~AprilTagDetector()
 	tagStandard41h12_destroy(tf);
 }
 
-void get_position_from_pose(apriltag_pose_t pose, TagPosition *position)
+void get_position_from_pose(apriltag_pose_t pose, Tag_Position *position)
 {
 	position->set_x(-pose.t->data[0] * 39.3701); // * 86.6595 - .621;
 
@@ -58,7 +58,7 @@ void get_position_from_pose(apriltag_pose_t pose, TagPosition *position)
 	position->set_pitch(atan2(r32, r33) / (2 * 3.14) * 360);
 }
 
-void get_fieldposition_estimate(TagPosition tag, float tag_displacement, FieldPosition *fp)
+void get_fieldposition_estimate(Tag_Position tag, float tag_displacement, Field_Position *fp)
 {
 	float tag_distance = 23.5; // displacement from center
 	float tag_theta = -tag.get_yaw() * (2 * 3.14) / 360.0;
@@ -86,10 +86,10 @@ void AprilTagDetector::detect(Mat &gray)
 
 	zarray_t *detections = apriltag_detector_detect(td, &im);
 
-	comm::TagPosition tag0_pos1;
-	comm::TagPosition tag0_pos2;
-	comm::TagPosition tag1_pos1;
-	comm::TagPosition tag1_pos2;
+	comm::Tag_Position tag0_pos1;
+	comm::Tag_Position tag0_pos2;
+	comm::Tag_Position tag1_pos1;
+	comm::Tag_Position tag1_pos2;
 
 	// reset tag poses
 	tag0_pos1.set_x( 0);
@@ -123,7 +123,7 @@ void AprilTagDetector::detect(Mat &gray)
 		// First create an apriltag_detection_info_t struct using your known parameters.
 		apriltag_detection_info_t info;
 		info.det = det;
-		info.tagsize = .1345;
+		info.tagsize = .0985;
 		info.fx = fx;
 		info.fy = fy;
 		info.cx = cx;
@@ -155,10 +155,10 @@ void AprilTagDetector::detect(Mat &gray)
 	}
 	apriltag_detections_destroy(detections);
 
-	FieldPosition tag0_pos1_fp;
-	FieldPosition tag0_pos2_fp;
-	FieldPosition tag1_pos1_fp;
-	FieldPosition tag1_pos2_fp;
+	Field_Position tag0_pos1_fp;
+	Field_Position tag0_pos2_fp;
+	Field_Position tag1_pos1_fp;
+	Field_Position tag1_pos2_fp;
 	get_fieldposition_estimate(tag0_pos1, 24.0 / 2.0, &tag0_pos1_fp);
 	get_fieldposition_estimate(tag0_pos2, 24 / 2.0, &tag0_pos2_fp);
 	get_fieldposition_estimate(tag1_pos1, -24.0 / 2.0, &tag1_pos1_fp);
@@ -277,7 +277,7 @@ void AprilTagDetector::detect(Mat &gray)
 	vision.set_vision_good( pose_valid ? 1 : 0);
 }
 
-std::ostream &operator<<(std::ostream &os, const comm::TagPosition &t)
+std::ostream &operator<<(std::ostream &os, const comm::Tag_Position &t)
 {
 	//os << t.get_x() << " " << t.get_y() << " " << t.get_z() << " ";
 	//os << t.get_yaw() << " " << t.get_pitch() << " " << t.get_roll() << "\r\n"
