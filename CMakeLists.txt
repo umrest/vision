@@ -7,10 +7,12 @@ file(GLOB vision_SRC
     "src/*.cpp"
 )
 
-include_directories( include 
- ${BOOST_INCLUDE_DIRS})
 
 find_package( OpenCV REQUIRED )
+
+include_directories( include 
+ ${BOOST_INCLUDE_DIRS} ${OpenCV_INCLUDE_DIRS})
+
 find_package( apriltag REQUIRED apriltag)
 find_package( Boost COMPONENTS filesystem system REQUIRED )
 find_package (Threads REQUIRED)

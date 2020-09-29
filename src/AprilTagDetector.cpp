@@ -1,95 +1,121 @@
 #include "AprilTagDetector.h"
 
 #include "math.h"
+#include <map>
 
 using namespace std;
 using namespace cv;
 using namespace comm;
 
+#define pi 3.141592653589
+
 AprilTagDetector::AprilTagDetector(double fx_in, double fy_in, double cx_in, double cy_in) : fx(fx_in), fy(fy_in), cx(cx_in), cy(cy_in),
-																							 td(apriltag_detector_create()), tf(tagStandard41h12_create())
+																							 td(apriltag_detector_create()), tf(tag16h5_create())
 {
 
 	apriltag_detector_add_family(td, tf);
 
-	//td->quad_decimate = 2;
+	td->quad_decimate = 4;
 	//td->quad_sigma = 0.8;
-	//td->refine_edges = 1;
+	td->refine_edges = 0;
 	td->nthreads = 2;
 
 	vision._field_position.set_x(0);
 	vision._field_position.set_y(0);
 	vision._field_position.set_yaw(0);
-
-	moving_average.set_x( 0);
-	moving_average.set_y( 0);
-	moving_average.set_yaw( 0);
 }
 
 AprilTagDetector::~AprilTagDetector()
 {
 	apriltag_detector_destroy(td);
-	tagStandard41h12_destroy(tf);
+	tag16h5_destroy(tf);
 }
 
-void get_position_from_pose(apriltag_pose_t pose, Tag_Position *position)
+void AprilTagDetector::get_position_from_det(std::vector<apriltag_detection_t*> dets, Tag_Position *position)
 {
-	position->set_x(-pose.t->data[0] * 39.3701); // * 86.6595 - .621;
+	std::map<int, Point2d> tag_center_offsets;
+	// -x -> left, +y -> up
+	tag_center_offsets[0] = cv::Point2d(-.310,0); // tag 0 is in the middle at 0,0
+	tag_center_offsets[1] = cv::Point2d(0,0); // tag 1 is in the left at -1,0
+	tag_center_offsets[2] = cv::Point2d(.315,0); // tag 2 is in the rights at 1,0
+	tag_center_offsets[3] = cv::Point2d(-.310,.247); // tag 2 is in the rights at 1,0
+	tag_center_offsets[4] = cv::Point2d(0,.247); // tag 2 is in the rights at 1,0
+	tag_center_offsets[5] = cv::Point2d(.315,.247); // tag 2 is in the rights at 1,0
 
-	position->set_y(pose.t->data[1] * 39.3701); // * 86.6595 - .621;
-	position->set_z(pose.t->data[2] * 39.3701); // * 86.6595 - .621;
+	double tagsize = .152;
+	vector<Point3d> object_points;
+	vector<Point2d> image_points;
 
-	double r11 = pose.R->data[0];
-	double r12 = pose.R->data[1];
-	double r13 = pose.R->data[2];
-	double r21 = pose.R->data[3];
-	double r22 = pose.R->data[4];
-	double r23 = pose.R->data[5];
-	double r31 = pose.R->data[6];
-	double r32 = pose.R->data[7];
-	double r33 = pose.R->data[8];
+	int valid_tag_count = 0;
 
-	position->set_roll(atan2(r21, r11) / (2 * 3.14) * 360);
+	for(apriltag_detection_t* det : dets){
+		if(tag_center_offsets.count(det->id)){
+			valid_tag_count++;
+			cv::Point2d offset = tag_center_offsets[det->id];
 
-	position->set_yaw (-atan2(-r31, sqrt(r32 * r32 + r33 * r33)) / (2 * 3.14) * 360);
+			object_points.push_back(cv::Point3d(-tagsize/2 + offset.y, -tagsize/2 + offset.x, 0));
+			object_points.push_back(cv::Point3d(-tagsize/2 + offset.y, tagsize/2 + offset.x, 0));
+			object_points.push_back(cv::Point3d(tagsize/2 + offset.y, tagsize/2 + offset.x, 0));
+			object_points.push_back(cv::Point3d(tagsize/2 + offset.y, -tagsize/2 + offset.x, 0));
+				
+			image_points.push_back(cv::Point2d(det->p[0][0], det->p[0][1]));
+			image_points.push_back(cv::Point2d(det->p[1][0], det->p[1][1]));
+			image_points.push_back(cv::Point2d(det->p[2][0], det->p[2][1]));
+			image_points.push_back(cv::Point2d(det->p[3][0], det->p[3][1]));
+		}
+	}
 
+	std::cout << "Localizing off of " << valid_tag_count << " tags." << std::endl;
 
+	//std::cout << object_points.size() << std::endl;
 
-	position->set_pitch(atan2(r32, r33) / (2 * 3.14) * 360);
+	if(valid_tag_count > 2){
+		Mat cameraMatrix = (Mat1d(3, 3) << fx, 0, cx, 0, fy, cy, 0, 0, 1);
+		Mat distCoeffs = (Mat1d(4, 1) << 0, 0, 0, 0);
+
+		
+		bool starting_guess = !rvec.empty() && !tvec.empty();
+		cv::solvePnP(object_points, image_points, cameraMatrix, distCoeffs, rvec, tvec, starting_guess);
+
+		cv::Mat R;
+		cv::Rodrigues(rvec, R);
+
+		R = R.t();          // inverse rotation
+		tvec = -R * tvec;   // translation of inverse
+
+		// camPose is a 4x4 matrix with the pose of the camera in the object frame
+		cv::Mat camPose = cv::Mat::eye(4, 4, R.type());
+		R.copyTo(camPose.rowRange(0, 3).colRange(0, 3)); // copies R into camPose
+		tvec.copyTo(camPose.rowRange(0, 3).colRange(3, 4)); // copies tvec into camPose
+
+		double pitch = atan2(-camPose.at<double>(2,1), camPose.at<double>(2,2));
+		double yaw = asin(camPose.at<double>(2,0));
+		double roll = atan2(-camPose.at<double>(1,0), camPose.at<double>(0,0));
+
+		double scale = 90.0 / (pi / 2);
+		position->set_yaw(yaw * scale);
+		position->set_pitch(pitch * scale);
+		position->set_roll(roll * scale);
+		
+		position->set_x(camPose.at<double>(1, 3) * 39.3701); // * 86.6595 - .621;
+		position->set_y(camPose.at<double>(0, 3) * 39.3701);	 // * 86.6595 - .621;
+		position->set_z(-camPose.at<double>(2, 3) * 39.3701);	 // * 86.6595 - .621;
+	}
 }
 
-void get_fieldposition_estimate(Tag_Position tag, float tag_displacement, Field_Position *fp)
-{
-	float tag_distance = 23.5; // displacement from center
-	float tag_theta = -tag.get_yaw() * (2 * 3.14) / 360.0;
-
-	float tag_x_1 = sin(tag_theta) * tag.get_z();
-	float tag_x_2 = sin(3.14 / 2.0 - tag_theta) * tag.get_x();
-
-	float tag_y_1 = cos(-tag_theta) * tag.get_z();
-	float tag_y_2 = cos(3.14 / 2.0 + tag_theta) * tag.get_x();
-
-	float tag_x_estimate = tag_x_1 + tag_x_2 - tag_displacement;
-	float tag_y_estimate = tag_y_1 + tag_y_2;
-	float tag_yaw_estimate = tag.get_yaw();
-
-	fp->set_x ( tag_x_estimate);
-	fp->set_y( tag_y_estimate);
-	fp->set_yaw ( tag_yaw_estimate);
-}
 
 void AprilTagDetector::detect(Mat &gray)
 {
 	image_u8_t im = {gray.cols, gray.rows, gray.cols, gray.data};
 
 	// DETECTION
-
+	timer.reset();
 	zarray_t *detections = apriltag_detector_detect(td, &im);
+	//std::cout << timer.elapsed() << "s to detect tags" << std::endl;
 
+	timer.reset();
 	comm::Tag_Position tag0_pos1;
-	comm::Tag_Position tag0_pos2;
 	comm::Tag_Position tag1_pos1;
-	comm::Tag_Position tag1_pos2;
 
 	// reset tag poses
 	tag0_pos1.set_x( 0);
@@ -100,16 +126,11 @@ void AprilTagDetector::detect(Mat &gray)
 	tag1_pos1.set_y ( 0);
 	tag1_pos1.set_z ( 0);
 	tag1_pos1.set_yaw ( 0);
-	tag0_pos2.set_x ( 0);
-	tag0_pos2.set_y ( 0);
-	tag0_pos2.set_z ( 0);
-	tag0_pos2.set_yaw ( 0);
-	tag1_pos2.set_x ( 0);
-	tag1_pos2.set_y ( 0);
-	tag1_pos2.set_z ( 0);
-	tag1_pos2.set_yaw ( 0);
 
-		bool pose_valid = false;
+	bool pose_valid = false;
+
+	std::vector<apriltag_detection_t*> dets;
+
 
 	for (int i = 0; i < zarray_size(detections); i++)
 	{
@@ -118,169 +139,15 @@ void AprilTagDetector::detect(Mat &gray)
 		apriltag_detection_t *det;
 		zarray_get(detections, i, &det);
 
-		// POS ESTIMATION
-
-		// First create an apriltag_detection_info_t struct using your known parameters.
-		apriltag_detection_info_t info;
-		info.det = det;
-		info.tagsize = .0985;
-		info.fx = fx;
-		info.fy = fy;
-		info.cx = cx;
-		info.cy = cy;
-
-		// Then call estimate_tag_pose.
-		apriltag_pose_t pose1;
-		apriltag_pose_t pose2;
-		double err1;
-		double err2;
-		estimate_tag_pose_orthogonal_iteration(&info, &err1, &pose1, &err2, &pose2, 50);
-
-		if (det->id == 0)
-		{
-			get_position_from_pose(pose1, &tag0_pos1);
-			if (err2 != HUGE_VAL)
-			{
-				get_position_from_pose(pose2, &tag0_pos2);
-			}
+		if(det->hamming < 1){
+			dets.push_back(det);
 		}
-		else if (det->id == 1)
-		{
-			get_position_from_pose(pose1, &tag1_pos1);
-			if (err2 != HUGE_VAL)
-			{
-				get_position_from_pose(pose2, &tag1_pos2);
-			}
-		}
+
+		
 	}
+	get_position_from_det(dets, &vision._tag0);
 	apriltag_detections_destroy(detections);
 
-	Field_Position tag0_pos1_fp;
-	Field_Position tag0_pos2_fp;
-	Field_Position tag1_pos1_fp;
-	Field_Position tag1_pos2_fp;
-	get_fieldposition_estimate(tag0_pos1, 24.0 / 2.0, &tag0_pos1_fp);
-	get_fieldposition_estimate(tag0_pos2, 24 / 2.0, &tag0_pos2_fp);
-	get_fieldposition_estimate(tag1_pos1, -24.0 / 2.0, &tag1_pos1_fp);
-	get_fieldposition_estimate(tag1_pos2, -24 / 2.0, &tag1_pos2_fp);
-
-	//cout << "0: " << tag0_pos1_fp.set_x( << " " << tag0_pos2_fp.set_x( << endl;
-	// cout << "1: " << tag1_pos1_fp.set_x( << " " << tag1_pos2_fp.set_x( << endl;
-
-	// try all pairs of tags and poses to find best match
-
-	// pose1_2 -> tag0pos1, tag1_pos2
-	int pose1_1 = abs(tag0_pos1_fp.get_x() - tag1_pos1_fp.get_x()) + abs(tag0_pos1_fp.get_y() - tag1_pos1_fp.get_y());
-	int pose1_2 = abs(tag0_pos1_fp.get_x() - tag1_pos2_fp.get_x()) + abs(tag0_pos1_fp.get_y() - tag1_pos2_fp.get_y());
-	int pose2_1 = abs(tag0_pos2_fp.get_x() - tag1_pos1_fp.get_x()) + abs(tag0_pos2_fp.get_y() - tag1_pos1_fp.get_y());
-	int pose2_2 = abs(tag0_pos2_fp.get_x() - tag1_pos2_fp.get_x()) + abs(tag0_pos2_fp.get_y() - tag1_pos2_fp.get_y());
-
-	std::vector<int> pose_errors = {pose1_1, pose1_2, pose2_1};
-	vision._tag0.set_x( tag0_pos1.get_x());
-	vision._tag0.set_y ( tag0_pos1.get_y());
-	vision._tag0.set_z( tag0_pos1.get_z());
-	vision._tag0.set_yaw( tag0_pos1.get_yaw());
-	vision._tag1.set_x( tag1_pos1.get_x());
-	vision._tag1.set_y (tag1_pos1.get_y());
-	vision._tag1.set_z ( tag1_pos1.get_z());
-	vision._tag1.set_yaw ( tag1_pos1.get_yaw());
-
-	vision._field_position.set_x ( 0);
-		vision._field_position.set_y (   0);
-		vision._field_position.set_yaw ( 0);
-
-	
-
-	
-
-	// both tags are visible
-	if (tag0_pos1.get_z() != 0 && tag1_pos1.get_z() != 0)
-	{
-		int idx = std::min_element(pose_errors.begin(), pose_errors.end()) - pose_errors.begin();
-		//cout << idx << endl;
-			//cout << "0: " << tag0_pos1_fp.set_x( << " " << tag0_pos2_fp.set_x( << endl;
-			//cout << "1: " << tag1_pos1_fp.set_x( << " " << tag1_pos2_fp.set_x( << endl;
-			
-			// pose1_1 had min error
-			if (idx == 0)
-			{
-				cur_fp.set_x(  (tag0_pos1_fp.get_x() + tag1_pos1_fp.get_x()) / 2.0);
-				cur_fp.set_y(  (tag0_pos1_fp.get_y() + tag1_pos1_fp.get_y()) / 2.0);
-				cur_fp.set_yaw( (tag0_pos1_fp.get_yaw() + tag1_pos1_fp.get_yaw()) / 2.0);
-			}
-			// pose1_2
-			else if (idx == 1)
-			{
-				cur_fp.set_x(  (tag0_pos1_fp.get_x() + tag1_pos2_fp.get_x()) / 2.0);
-				cur_fp.set_y(  (tag0_pos1_fp.get_y() + tag1_pos2_fp.get_y()) / 2.0);
-				cur_fp.set_yaw( (tag0_pos1_fp.get_yaw() + tag1_pos2_fp.get_yaw()) / 2.0);
-			}
-			// pose2_1
-			else if (idx == 2)
-			{
-				cur_fp.set_x(  (tag0_pos2_fp.get_x() + tag1_pos1_fp.get_x()) / 2.0);
-				cur_fp.set_y(  (tag0_pos2_fp.get_y() + tag1_pos1_fp.get_y()) / 2.0);
-				cur_fp.set_yaw( (tag0_pos2_fp.get_yaw() + tag1_pos1_fp.get_yaw()) / 2.0);
-			}
-	
-		
-	}
-	else if (vision._tag0.get_z() != 0)
-	{
-		cur_fp.set_x(  tag0_pos1_fp.get_x());
-		cur_fp.set_y(  tag0_pos1_fp.get_y());
-		cur_fp.set_yaw( tag0_pos1_fp.get_yaw());
-	}
-	else if (vision._tag1.get_z() != 0)
-	{
-		cur_fp.set_x( tag1_pos1_fp.get_x());
-		cur_fp.set_y(  tag1_pos1_fp.get_y());
-		cur_fp.set_yaw(  tag1_pos1_fp.get_yaw());
-	}
-	else
-	{
-		vision._tag0.set_x(0);
-		vision._tag0.set_y(  0);
-		vision._tag0.set_z(  0);
-		vision._tag0.set_yaw(  0);
-		vision._tag1.set_x  (0);
-		vision._tag1.set_y  (0);
-		vision._tag1.set_z  (0);
-		vision._tag1.set_yaw(  0);
-	}
-	
-	if(pose_valid){
-		
-		int diff = abs(moving_average.get_x() - cur_fp.get_x()) + abs(moving_average.get_y() - cur_fp.get_y());
-
-		if(diff < 30){
-			moving_average.set_x ( (alpha * cur_fp.get_x() + (1.0 - alpha) * moving_average.get_x()));
-			moving_average.set_y ( (alpha * cur_fp.get_y() + (1.0 - alpha) * moving_average.get_y()));
-			moving_average.set_yaw( (alpha * cur_fp.get_yaw() + (1.0 - alpha) * moving_average.get_yaw()));
-			reset_times = 0;
-		}
-		else if(reset_times > 5){
-			
-			moving_average.set_x( cur_fp.get_x());
-			moving_average.set_y( cur_fp.get_y());
-			moving_average.set_yaw (cur_fp.get_yaw());
-		}
-		else{
-			reset_times++;
-		}
-
-		vision._field_position.set_x(   moving_average.get_x());
-		vision._field_position.set_y(    moving_average.get_y());
-		vision._field_position.set_yaw ( moving_average.get_yaw());
-	}
-
 	vision.set_vision_good( pose_valid ? 1 : 0);
-}
-
-std::ostream &operator<<(std::ostream &os, const comm::Tag_Position &t)
-{
-	//os << t.get_x() << " " << t.get_y() << " " << t.get_z() << " ";
-	//os << t.get_yaw() << " " << t.get_pitch() << " " << t.get_roll() << "\r\n"
-	//   << std::flush;
-	return os;
+	//std::cout << timer.elapsed() << "s to process tags" << std::endl;
 }
